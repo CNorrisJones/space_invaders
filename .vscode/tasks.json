@@ -3,7 +3,7 @@
         {
             "type": "cppbuild",
             "label": "C/C++: g++-9 build active file",
-            "command": "/usr/bin/g++-9",
+            "command": "/usr/bin/gcc-9",
             "args": [
                 "-fdiagnostics-color=always",
                 "-g",
