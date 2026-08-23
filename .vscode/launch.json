@@ -2,15 +2,27 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "C/C++: gcc Build and Debug Active File",
+            "name": "(gdb) Launch Emulator",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${fileDirname}/${fileBasenameNoExtension}",
-            "args": [
-                "./rom/invaders"
-            ],
+            // Points exactly to your TARGET binary name from the Makefile
+            "program": "${workspaceFolder}/emulator",
+            // This passes your Space Invaders ROM file as argv[1]
+            "args": ["./rom/invaders"],
+            "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
             "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            // Forces VS Code to run 'make' using your tasks.json before debugging
+            "preLaunchTask": "make build",
             "miDebuggerPath": "/usr/bin/gdb"
         }
     ]
