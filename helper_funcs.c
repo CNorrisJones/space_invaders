@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include "helper_funcs.h"
 
-unsigned char *get_file_contents(char *file_name, long *out_fsize) {
+unsigned char *GetFileContents(char *file_name, long *out_fsize) {
     FILE *file = fopen(file_name, "rb");
 
     if (file == NULL) {

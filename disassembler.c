@@ -7,7 +7,7 @@
 
     returns the number of bytes of the given operation    
 */
-int disassemble8080code(unsigned char *codebuffer, int counter) {
+int Disassemble8080Code(unsigned char *codebuffer, int counter) {
     const int DEFAULT = 1;
 
     //     1. Read the code into a buffer
@@ -278,10 +278,10 @@ int disassemble8080code(unsigned char *codebuffer, int counter) {
     return opbytes;
 }
 
-void test_disassembler(long file_size, unsigned char *buffer) {
+void TestDisassembler(long file_size, unsigned char *buffer) {
     int pc = 0;
     while (pc < file_size) {
-        pc += disassemble8080code(buffer, pc);
+        pc += Disassemble8080Code(buffer, pc);
     }
 
     return;
