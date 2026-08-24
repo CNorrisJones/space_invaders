@@ -37,7 +37,7 @@ void AddMemoryOpCode(State8080 *state);
 void AdiOpCode(State8080 *state, uint8_t added_byte);
 void LxiOpCode(State8080 *state, uint8_t *lower_register, uint8_t *upper_register, uint8_t byte_2, uint8_t byte_3);
 void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3);
-void MovOpCode(State8080 *state, uint8_t *dest_register, uint8_t *send_register);
+void MovOpCode(uint8_t *dest_register, uint8_t *send_register);
 void MovMemSendOpCode(State8080 *state, uint8_t *dest_register);
 void MovMemDestOpCode(State8080 *state, uint8_t *send_register);
 int Emulate8080Op(State8080* state);

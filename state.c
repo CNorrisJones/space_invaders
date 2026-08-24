@@ -86,19 +86,23 @@ void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
     return;
 }
 
-void MovOpCode(State8080 *state, uint8_t *dest_register, uint8_t *send_register) {
+void MovOpCode(uint8_t *dest_register, uint8_t *send_register) {
     *dest_register = *send_register;
 
     return;
 }
 
 void MovMemSendOpCode(State8080 *state, uint8_t *dest_register) {
-    // TODO
+    uint16_t address = GetMemoryAddress(state->h, state->l);
+
+    *dest_register = PullFromMemory(state, address);
     return;
 }
 
 void MovMemDestOpCode(State8080 *state, uint8_t *send_register) {
-    // TODO
+    uint16_t address = GetMemoryAddress(state->h, state->l);
+
+    state->memory[address] = *send_register;
     return;
 }
 
@@ -254,7 +258,7 @@ int Emulate8080Op(State8080* state) {
             NopOpCode();
             break;
         case 0x31: // LXI SP, D16
-            UnimplementedInstruction(state);
+            LxiStackPointerOpCode(state, opcode[1], opcode[2]);
             break;
         case 0x32: // STA adr
             UnimplementedInstruction(state);
@@ -299,196 +303,196 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x40: // MOV B, B
-            MovOpCode(state, &state->b, &state->b);
+            MovOpCode(&state->b, &state->b);
             break;
         case 0x41: // MOV B, C
-            MovOpCode(state, &state->b, &state->c);
+            MovOpCode(&state->b, &state->c);
             break;
         case 0x42: // MOV B, D
-            MovOpCode(state, &state->b, &state->d);
+            MovOpCode(&state->b, &state->d);
             break;
         case 0x43: // MOV B, E
-            MovOpCode(state, &state->b, &state->e);
+            MovOpCode(&state->b, &state->e);
             break;
         case 0x44: // MOV B, H
-            MovOpCode(state, &state->b, &state->h);
+            MovOpCode(&state->b, &state->h);
             break;
         case 0x45: // MOV B, L
-            MovOpCode(state, &state->b, &state->l);
+            MovOpCode(&state->b, &state->l);
             break;
         case 0x46: // MOV B, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->b);
             break;
         case 0x47: // MOV B, A
-            MovOpCode(state, &state->b, &state->a);
+            MovOpCode(&state->b, &state->a);
             break;
         case 0x48: // MOV C, B
-            MovOpCode(state, &state->c, &state->b);
+            MovOpCode(&state->c, &state->b);
             break;
         case 0x49: // MOV C, C
-            MovOpCode(state, &state->c, &state->c);
+            MovOpCode(&state->c, &state->c);
             break;
         case 0x4A: // MOV C, D
-            MovOpCode(state, &state->c, &state->d);
+            MovOpCode(&state->c, &state->d);
             break;
         case 0x4B: // MOV C, E
-            MovOpCode(state, &state->c, &state->e);
+            MovOpCode(&state->c, &state->e);
             break;
         case 0x4C: // MOV C, H
-            MovOpCode(state, &state->c, &state->h);
+            MovOpCode(&state->c, &state->h);
             break;
         case 0x4D: // MOV C, L
-            MovOpCode(state, &state->c, &state->l);
+            MovOpCode(&state->c, &state->l);
             break;
         case 0x4E: // MOV C, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->c);
             break;
         case 0x4F: // MOV C, A
-            MovOpCode(state, &state->c, &state->a);
+            MovOpCode(&state->c, &state->a);
             break;
         case 0x50: // MOV D, B
-            MovOpCode(state, &state->d, &state->b);
+            MovOpCode(&state->d, &state->b);
             break;
         case 0x51: // MOV D, C
-            MovOpCode(state, &state->d, &state->c);
+            MovOpCode(&state->d, &state->c);
             break;
         case 0x52: // MOV D, D
-            MovOpCode(state, &state->d, &state->d);
+            MovOpCode(&state->d, &state->d);
             break;
         case 0x53: // MOV D, E
-            MovOpCode(state, &state->d, &state->e);
+            MovOpCode(&state->d, &state->e);
             break;
         case 0x54: // MOV D, H
-            MovOpCode(state, &state->d, &state->h);
+            MovOpCode(&state->d, &state->h);
             break;
         case 0x55: // MOV D, L
-            MovOpCode(state, &state->d, &state->l);
+            MovOpCode(&state->d, &state->l);
             break;
         case 0x56: // MOV D, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->d);
             break;
         case 0x57: // MOV D, A
-            MovOpCode(state, &state->d, &state->a);
+            MovOpCode(&state->d, &state->a);
             break;
         case 0x58: // MOV E, B
-            MovOpCode(state, &state->e, &state->b);
+            MovOpCode(&state->e, &state->b);
             break;
         case 0x59: // MOV E, C
-            MovOpCode(state, &state->e, &state->c);
+            MovOpCode(&state->e, &state->c);
             break;
         case 0x5A: // MOV E, D
-            MovOpCode(state, &state->e, &state->d);
+            MovOpCode(&state->e, &state->d);
             break;
         case 0x5B: // MOV E, E
-            MovOpCode(state, &state->e, &state->e);
+            MovOpCode(&state->e, &state->e);
             break;
         case 0x5C: // MOV E, H
-            MovOpCode(state, &state->e, &state->h);
+            MovOpCode(&state->e, &state->h);
             break;
         case 0x5D: // MOV E, L
-            MovOpCode(state, &state->e, &state->l);
+            MovOpCode(&state->e, &state->l);
             break;
         case 0x5E: // MOV E, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->e);
             break;
         case 0x5F: // MOV E, A
-            MovOpCode(state, &state->e, &state->a);
+            MovOpCode(&state->e, &state->a);
             break;
         case 0x60: // MOV H, B
-            MovOpCode(state, &state->h, &state->b);
+            MovOpCode(&state->h, &state->b);
             break;
         case 0x61: // MOV H, C
-            MovOpCode(state, &state->h, &state->c);
+            MovOpCode(&state->h, &state->c);
             break;
         case 0x62: // MOV H, D
-            MovOpCode(state, &state->h, &state->d);
+            MovOpCode(&state->h, &state->d);
             break;
         case 0x63: // MOV H, E
-            MovOpCode(state, &state->h, &state->e);
+            MovOpCode(&state->h, &state->e);
             break;
         case 0x64: // MOV H, H
-            MovOpCode(state, &state->h, &state->h);
+            MovOpCode(&state->h, &state->h);
             break;
         case 0x65: // MOV H, L
-            MovOpCode(state, &state->h, &state->l);
+            MovOpCode(&state->h, &state->l);
             break;
         case 0x66: // MOV H, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->h);
             break;
         case 0x67: // MOV H, A
-            MovOpCode(state, &state->h, &state->a);
+            MovOpCode(&state->h, &state->a);
             break;
         case 0x68: // MOV L, B
-            MovOpCode(state, &state->l, &state->b);
+            MovOpCode(&state->l, &state->b);
             break;
         case 0x69: // MOV L, C
-            MovOpCode(state, &state->l, &state->c);
+            MovOpCode(&state->l, &state->c);
             break;
         case 0x6A: // MOV L, D
-            MovOpCode(state, &state->l, &state->d);
+            MovOpCode(&state->l, &state->d);
             break;
         case 0x6B: // MOV L, E
-            MovOpCode(state, &state->l, &state->e);
+            MovOpCode(&state->l, &state->e);
             break;
         case 0x6C: // MOV L, H
-            MovOpCode(state, &state->l, &state->h);
+            MovOpCode(&state->l, &state->h);
             break;
         case 0x6D: // MOV L, L
-            MovOpCode(state, &state->l, &state->l);
+            MovOpCode(&state->l, &state->l);
             break;
         case 0x6E: // MOV L, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->l);
             break;
         case 0x6F: // MOV L, A
-            MovOpCode(state, &state->l, &state->a);
+            MovOpCode(&state->l, &state->a);
             break;
         case 0x70: // MOV M, B
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->b);
             break;
         case 0x71: // MOV M, C
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->c);
             break;
         case 0x72: // MOV M, D
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->d);
             break;
         case 0x73: // MOV M, E
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->e);
             break;
         case 0x74: // MOV M, H
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->h);
             break;
         case 0x75: // MOV M, L
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->l);
             break;
         case 0x76: // HLT
             UnimplementedInstruction(state);
             break;
         case 0x77: // MOV M, A
-            UnimplementedInstruction(state);
+            MovMemDestOpCode(state, &state->a);
             break;
         case 0x78: // MOV A, B
-            MovOpCode(state, &state->a, &state->b);
+            MovOpCode(&state->a, &state->b);
             break;
         case 0x79: // MOV A, C
-            MovOpCode(state, &state->a, &state->c);
+            MovOpCode(&state->a, &state->c);
             break;
         case 0x7A: // MOV A, D
-            MovOpCode(state, &state->a, &state->d);
+            MovOpCode(&state->a, &state->d);
             break;
         case 0x7B: // MOV A, E
-            MovOpCode(state, &state->a, &state->e);
+            MovOpCode(&state->a, &state->e);
             break;
         case 0x7C: // MOV A, H
-            MovOpCode(state, &state->a, &state->h);
+            MovOpCode(&state->a, &state->h);
             break;
         case 0x7D: // MOV A, L
-            MovOpCode(state, &state->a, &state->l);
+            MovOpCode(&state->a, &state->l);
             break;
         case 0x7E: // MOV A, M
-            UnimplementedInstruction(state);
+            MovMemSendOpCode(state, &state->a);
             break;
         case 0x7F: // MOV A, A
-            MovOpCode(state, &state->a, &state->a);
+            MovOpCode(&state->a, &state->a);
             break;
         case 0x80: // ADD B
             AddOpCode(state, &state->b);
