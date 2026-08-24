@@ -138,6 +138,12 @@ void InxStackPointerOpCode(State8080 *state) {
     return;
 }
 
+// Reg <- Reg + 1
+void InrOpCode(uint8_t *reg) {
+    *reg += 1;
+    return;
+}
+
 int Emulate8080Op(State8080* state) {
     unsigned char *opcode = &state->memory[state->pc];
 
@@ -155,7 +161,7 @@ int Emulate8080Op(State8080* state) {
             InxOpCode(&state->b, &state->c);
             break;
         case 0x04: // INR B
-            UnimplementedInstruction(state);
+            InrOpCode(&state->b);
             break;
         case 0x05: // DCR B
             UnimplementedInstruction(state);
@@ -179,7 +185,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x0C: // INR C
-            UnimplementedInstruction(state);
+            InrOpCode(&state->c);
             break;
         case 0x0D: // DCR C
             UnimplementedInstruction(state);
@@ -203,7 +209,7 @@ int Emulate8080Op(State8080* state) {
             InxOpCode(&state->d, &state->e);
             break;
         case 0x14: // INR D
-            UnimplementedInstruction(state);
+            InrOpCode(&state->d);
             break;
         case 0x15: // DCR D
             UnimplementedInstruction(state);
@@ -227,7 +233,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x1C: // INR E
-            UnimplementedInstruction(state);
+            InrOpCode(&state->e);
             break;
         case 0x1D: // DCR E
             UnimplementedInstruction(state);
@@ -251,7 +257,7 @@ int Emulate8080Op(State8080* state) {
             InxOpCode(&state->h, &state->l);
             break;
         case 0x24: // INR H
-            UnimplementedInstruction(state);
+            InrOpCode(&state->h);
             break;
         case 0x25: // DCR H
             UnimplementedInstruction(state);
@@ -275,7 +281,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x2C: // INR L
-            UnimplementedInstruction(state);
+            InrOpCode(&state->l);
             break;
         case 0x2D: // DCR L
             UnimplementedInstruction(state);
@@ -300,6 +306,7 @@ int Emulate8080Op(State8080* state) {
             break;
         case 0x34: // INR M
             UnimplementedInstruction(state);
+            InrOpCode(&state->memory[GetMemoryAddress(state->h, state->l)]);
             break;
         case 0x35: // DCR M
             UnimplementedInstruction(state);
@@ -323,7 +330,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x3C: // INR A
-            UnimplementedInstruction(state);
+            InrOpCode(&state->a);
             break;
         case 0x3D: // DCR A
             UnimplementedInstruction(state);

@@ -43,6 +43,7 @@ void MovMemDestOpCode(State8080 *state, uint8_t *send_register);
 void StaxOpCode(State8080 *state, uint8_t high_register, uint8_t low_register);
 void InxOpCode(uint8_t *high_register, uint8_t *low_register);
 void InxStackPointerOpCode(State8080 *state);
+void InrOpCode(uint8_t *reg);
 int Emulate8080Op(State8080* state);
 State8080 *CreateTestState();
 void FreeState(State8080 *state);
