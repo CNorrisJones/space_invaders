@@ -29,7 +29,8 @@ void NopOpCode() {
     return;
 }
 
-void AddOpCode(State8080 *state, uint8_t *added_register) {
+// Z, S, P, CY, AC	A <- A + (added_register)
+void AddOpCode(State8080 *state, uint8_t *added_register) { 
     const uint8_t UPPER_BIT_MASK = 0xff;
     const uint8_t SIGN_BIT_MASK = 0x80;
 
@@ -45,6 +46,7 @@ void AddOpCode(State8080 *state, uint8_t *added_register) {
     return;
 }
 
+// Z, S, P, CY, AC	A <- A + (HL)
 void AddMemoryOpCode(State8080 *state) {
     uint16_t address = GetMemoryAddress(state->h, state->l);  
     uint16_t answer = (uint16_t) state->a + (uint16_t) PullFromMemory(state, address);    
@@ -55,6 +57,7 @@ void AddMemoryOpCode(State8080 *state) {
     state->a = answer & 0xff;
 }
 
+// Z, S, P, CY, AC	A <- A + added_byte
 void AdiOpCode(State8080 *state, uint8_t added_byte) {
     const uint8_t UPPER_BIT_MASK = 0xff;
     const uint8_t SIGN_BIT_MASK = 0x80;
@@ -72,6 +75,7 @@ void AdiOpCode(State8080 *state, uint8_t added_byte) {
     return;
 }
 
+// lower_register <- byte 3, upper_register <- byte 2
 void LxiOpCode(State8080 *state, uint8_t *lower_register, uint8_t *upper_register, uint8_t byte_2, uint8_t byte_3) {
     *lower_register = byte_3;
     *upper_register = byte_2;
@@ -79,6 +83,7 @@ void LxiOpCode(State8080 *state, uint8_t *lower_register, uint8_t *upper_registe
     return;
 }
 
+// SP.hi <- byte 3, SP.lo <- byte 2
 void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
     uint16_t address = GetMemoryAddress(byte_3, byte_2);
     state->sp = address;
@@ -86,12 +91,14 @@ void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
     return;
 }
 
+// Dest <- Send
 void MovOpCode(uint8_t *dest_register, uint8_t *send_register) {
     *dest_register = *send_register;
 
     return;
 }
 
+// Dest <- (HL)
 void MovMemSendOpCode(State8080 *state, uint8_t *dest_register) {
     uint16_t address = GetMemoryAddress(state->h, state->l);
 
@@ -99,10 +106,35 @@ void MovMemSendOpCode(State8080 *state, uint8_t *dest_register) {
     return;
 }
 
+// (HL) <- Send
 void MovMemDestOpCode(State8080 *state, uint8_t *send_register) {
     uint16_t address = GetMemoryAddress(state->h, state->l);
 
     state->memory[address] = *send_register;
+    return;
+}
+
+// ([high_register][low_register]) <- A
+void StaxOpCode(State8080 *state, uint8_t high_register, uint8_t low_register) {
+    uint16_t address = GetMemoryAddress(high_register, low_register);
+
+    state->memory[address] = state->a;
+    return;
+}
+
+// [Register Pair] <- [Register Pair] + 1
+void InxOpCode(uint8_t *high_register, uint8_t *low_register) {
+    uint16_t address = GetMemoryAddress(*high_register, *low_register);
+    address += 1;
+
+    *high_register = (address >> 8) & 0xFF;
+    *low_register = (address & 0x00FF);
+    return;
+}
+
+// SP = SP + 1
+void InxStackPointerOpCode(State8080 *state) {
+    state->sp += 1;
     return;
 }
 
@@ -117,10 +149,10 @@ int Emulate8080Op(State8080* state) {
             LxiOpCode(state, &state->b, &state->c, opcode[1], opcode[2]);
             break;
         case 0x02: // STAX B
-            UnimplementedInstruction(state);
+            StaxOpCode(state, state->b, state->c);
             break;
         case 0x03: // INX B
-            UnimplementedInstruction(state);
+            InxOpCode(&state->b, &state->c);
             break;
         case 0x04: // INR B
             UnimplementedInstruction(state);
@@ -165,10 +197,10 @@ int Emulate8080Op(State8080* state) {
             LxiOpCode(state, &state->d, &state->e, opcode[1], opcode[2]);
             break;
         case 0x12: // STAX D
-            UnimplementedInstruction(state);
+            StaxOpCode(state, state->d, state->e);
             break;
         case 0x13: // INX D
-            UnimplementedInstruction(state);
+            InxOpCode(&state->d, &state->e);
             break;
         case 0x14: // INR D
             UnimplementedInstruction(state);
@@ -216,7 +248,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x23: // INX H
-            UnimplementedInstruction(state);
+            InxOpCode(&state->h, &state->l);
             break;
         case 0x24: // INR H
             UnimplementedInstruction(state);
@@ -264,7 +296,7 @@ int Emulate8080Op(State8080* state) {
             UnimplementedInstruction(state);
             break;
         case 0x33: // INX SP
-            UnimplementedInstruction(state);
+            InxStackPointerOpCode(state);
             break;
         case 0x34: // INR M
             UnimplementedInstruction(state);
