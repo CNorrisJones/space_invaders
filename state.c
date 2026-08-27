@@ -26,11 +26,6 @@ uint16_t GetMemoryAddress(uint8_t high, uint8_t low) {
     return address;
 }
 
-uint8_t PullFromMemory(State8080 *state, uint16_t address) {
-    uint8_t value = state->memory[address];
-    return value;
-}
-
 void HandleFlags(State8080 *state, uint16_t value) {
     const uint8_t UPPER_BIT_MASK = 0xff;
     const uint8_t SIGN_BIT_MASK = 0x80;
@@ -57,6 +52,9 @@ void HandleCarryFlag(State8080 *state, uint16_t value) {
     return;
 }
 
+// NOP: Do Nothing
+// Flags: None
+// Op Size: 1
 void NopOpCode() {
     return;
 }
@@ -177,11 +175,11 @@ void InxOpCode(uint8_t *high_register, uint8_t *low_register) {
     address += 1;
 
     *high_register = (address >> 8) & 0xFF;
-    *low_register = (address & 0x00FF);
+    *low_register = (address & 0xFF);
     return;
 }
 
-// INX: SP = SP + 1
+// INX: Stack Pointer = Stack Pointer + 1
 // Flags: None
 // Op Size: 1
 void InxStackPointerOpCode(State8080 *state) {
@@ -189,15 +187,131 @@ void InxStackPointerOpCode(State8080 *state) {
     return;
 }
 
-// INR: Reg <- Reg+1
+// INR: Register <- Register + 1
 // Flags: Z, S, P, AC
 // Op Size: 1
 void InrOpCode(State8080 *state, uint8_t *reg) {
-    // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) *reg + 1;
 
     HandleFlagsNoCarryFlag(state, answer);
     *reg = answer;
+    return;
+}
+
+// DCR: Register <- Register - 1
+// Flags: Z, S, P, AC
+// Op Size: 1
+void DcrOpCode(State8080 *state, uint8_t *reg) {
+    uint16_t answer = (uint16_t) *reg - 1;
+
+    HandleFlagsNoCarryFlag(state, answer);
+    *reg = answer;
+    return;
+}
+
+// RLC: A = A << 1; bit 0 = prev bit 7; CY = prev bit 7
+// Flags: CY
+// Op Size: 1
+void RlcOpCode(State8080 *state) {
+    uint8_t value = state->a;
+    uint8_t bit_seven_value = value >> 7;
+
+    value = value << 1;
+    state->cc.cy = bit_seven_value;
+    value = value | bit_seven_value;
+
+    state->a = value;
+    return;
+}
+
+// DAD: HL = HL + (Register Pair)
+// Flags: CY
+// Op Size: 1
+void DadOpCode(State8080 *state, uint16_t register_pair) {
+    uint32_t hl_address = (uint32_t) GetMemoryAddress(state->h, state->l);
+
+    hl_address = hl_address + (uint32_t) register_pair;
+    state->cc.cy = (hl_address > 0xFFFF);
+
+    uint8_t final_upper_register = (uint8_t) ((hl_address & 0xFFFF) >> 8);
+    uint8_t final_lower_register = (uint8_t) (hl_address & 0xFF);
+
+    state->h = final_upper_register;
+    state->l = final_lower_register;
+    
+    return;
+}
+
+// LDAX: A <- (Register Pair)
+// Flags: None
+// Op Size: 1
+void LdaxOpCode(State8080 *state, uint16_t register_pair) {
+    state->a = state->memory[register_pair];
+    return;
+}
+
+// DCX: [Register Pair] = [Register Pair] - 1
+// Flags: None
+// Op Size: 1
+void DcxOpCode(uint8_t *high_register, uint8_t *low_register) {
+    uint16_t address = GetMemoryAddress(*high_register, *low_register);
+    address -= 1;
+
+    *high_register = (address >> 8) & 0xFF;
+    *low_register = (address & 0xFF);
+    return;
+}
+
+// DCX: Stack Pointer = Stack Pointer - 1
+// Flags: None
+// Op Size: 1
+void DcxStackPointerOpCode(State8080 *state) {
+    state->sp -= 1;
+    return;
+}
+
+// RRC: A = A >> 1; bit 7 = prev bit 0; CY = prev bit 0
+// Flags: CY
+// Op Size: 1
+void RrcOpCode(State8080 *state) {
+    uint8_t value = state->a;
+    uint8_t bit_zero_value = value & 0x1;
+
+    value = value >> 1;
+    state->cc.cy = bit_zero_value;
+    value = value | (uint8_t) (bit_zero_value << 7);
+
+    state->a = value;
+    return;
+}
+
+// RAL: A = A << 1; bit 0 = prev CY; CY = prev bit 7
+// Flags: CY
+// Op Size: 1
+void RalOpcode(State8080 *state) {
+    uint8_t value = state->a;
+    uint8_t bit_seven_value = value >> 7;
+
+    value = value << 1;
+    value = value | state->cc.cy;
+    state->cc.cy = bit_seven_value;
+
+    state->a = value;
+    return;
+}
+
+// RAR: A = A >> 1; bit 7 = prev CY; CY = prev bit 0
+// Flags: CY
+// Op Size: 1
+void RarOpCode(State8080 *state) {
+    uint8_t value = state->a;
+    uint8_t bit_zero_value = value & 0x1;
+
+    value = value >> 1;
+    value = value | (uint8_t) (state->cc.cy << 7);
+    state->cc.cy = bit_zero_value;
+
+    state->a = value;
     return;
 }
 
@@ -221,37 +335,37 @@ int Emulate8080Op(State8080* state) {
             InrOpCode(state, &state->b);
             break;
         case 0x05: // DCR B
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->b);
             break;
         case 0x06: // MVI B, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->b, opcode[1]);
             break;
         case 0x07: // RLC
-            UnimplementedInstruction(state);
+            RlcOpCode(state);
             break;
         case 0x08: // NOP
             NopOpCode();
             break;
         case 0x09: // DAD B
-            UnimplementedInstruction(state);
+            DadOpCode(state, GetMemoryAddress(state->b, state->c));
             break;
         case 0x0A: // LDAX B
-            UnimplementedInstruction(state);
+            LdaxOpCode(state, GetMemoryAddress(state->b, state->c));
             break;
         case 0x0B: // DCX B
-            UnimplementedInstruction(state);
+            DcxOpCode(&state->b, &state->c);
             break;
         case 0x0C: // INR C
             InrOpCode(state, &state->c);
             break;
         case 0x0D: // DCR C
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->c);
             break;
         case 0x0E: // MVI C, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->c, opcode[1]);
             break;
         case 0x0F: // RRC
-            UnimplementedInstruction(state);
+            RrcOpCode(state);
             break;
         case 0x10: // NOP
             NopOpCode();
@@ -269,37 +383,37 @@ int Emulate8080Op(State8080* state) {
             InrOpCode(state, &state->d);
             break;
         case 0x15: // DCR D
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->d);
             break;
         case 0x16: // MVI D, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->d, opcode[1]);
             break;
         case 0x17: // RAL
-            UnimplementedInstruction(state);
+            RalOpcode(state);
             break;
         case 0x18: // NOP
             NopOpCode();
             break;
         case 0x19: // DAD D
-            UnimplementedInstruction(state);
+            DadOpCode(state, GetMemoryAddress(state->d, state->e));
             break;
         case 0x1A: // LDAX D
-            UnimplementedInstruction(state);
+            LdaxOpCode(state, GetMemoryAddress(state->d, state->e));
             break;
         case 0x1B: // DCX D
-            UnimplementedInstruction(state);
+            DcxOpCode(&state->d, &state->e);
             break;
         case 0x1C: // INR E
             InrOpCode(state, &state->e);
             break;
         case 0x1D: // DCR E
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->e);
             break;
         case 0x1E: // MVI E, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->e, opcode[1]);
             break;
         case 0x1F: // RAR
-            UnimplementedInstruction(state);
+            RarOpCode(state);
             break;
         case 0x20: // NOP
             NopOpCode();
@@ -317,10 +431,10 @@ int Emulate8080Op(State8080* state) {
             InrOpCode(state, &state->h);
             break;
         case 0x25: // DCR H
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->h);
             break;
         case 0x26: // MVI H, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->h, opcode[1]);
             break;
         case 0x27: // DAA
             UnimplementedInstruction(state);
@@ -329,22 +443,22 @@ int Emulate8080Op(State8080* state) {
             NopOpCode();
             break;
         case 0x29: // DAD H
-            UnimplementedInstruction(state);
+            DadOpCode(state, GetMemoryAddress(state->h, state->l));
             break;
         case 0x2A: // LHLD adr
             UnimplementedInstruction(state);
             break;
         case 0x2B: // DCX H
-            UnimplementedInstruction(state);
+            DcxOpCode(&state->h, &state->l);
             break;
         case 0x2C: // INR L
             InrOpCode(state, &state->l);
             break;
         case 0x2D: // DCR L
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->l);
             break;
         case 0x2E: // MVI L, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->l, opcode[1]);
             break;
         case 0x2F: // CMA
             UnimplementedInstruction(state);
@@ -365,10 +479,10 @@ int Emulate8080Op(State8080* state) {
             InrOpCode(state, &state->memory[GetMemoryAddress(state->h, state->l)]);
             break;
         case 0x35: // DCR M
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->memory[GetMemoryAddress(state->h, state->l)]);
             break;
         case 0x36: // MVI M, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->memory[GetMemoryAddress(state->h, state->l)], opcode[1]);
             break;
         case 0x37: // STC
             UnimplementedInstruction(state);
@@ -377,22 +491,22 @@ int Emulate8080Op(State8080* state) {
             NopOpCode();
             break;
         case 0x39: // DAD SP
-            UnimplementedInstruction(state);
+            DadOpCode(state, state->sp);
             break;
         case 0x3A: // LDA adr
             UnimplementedInstruction(state);
             break;
         case 0x3B: // DCX SP
-            UnimplementedInstruction(state);
+            DcxStackPointerOpCode(state);
             break;
         case 0x3C: // INR A
             InrOpCode(state, &state->a);
             break;
         case 0x3D: // DCR A
-            UnimplementedInstruction(state);
+            DcrOpCode(state, &state->a);
             break;
         case 0x3E: // MVI A, D8
-            UnimplementedInstruction(state);
+            MviOpCode(state, &state->a, opcode[1]);
             break;
         case 0x3F: // CMC
             UnimplementedInstruction(state);
