@@ -22,7 +22,7 @@ uint8_t Parity(uint8_t input) {
 }
 
 uint16_t GetMemoryAdr(uint8_t high, uint8_t low) {
-    uint16_t adr = ((uint16_t)high << 8) | low;
+    uint16_t adr = ((uint16_t) high << 8) | low;
     return adr;
 }
 
@@ -36,12 +36,129 @@ void HandleZeroSignParityFlags(State8080 *state, uint16_t value) {
     return;
 }
 
-// NOP: Do Nothing
+// --------------------------------
+// ----- Data Transfer Funcs ------
+// --------------------------------
+
+// MOV: dest_reg <- send_reg
 // Flags: None
 // Op Size: 1
-void NopOpCode() {
+void MovOpCode(uint8_t *dest_reg, uint8_t *send_reg) {
+    *dest_reg = *send_reg;
     return;
 }
+
+// MVI: dest_reg <- byte 2
+// Flags: None
+// Op Size: 2
+void MviOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
+    *dest_reg = byte_2;
+    state->pc += 1;
+    return;
+}
+
+// LXI: high_reg <- byte 2, low_reg <- byte 3
+// Flags: None
+// Op Size: 3
+void LxiOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byte_2, uint8_t byte_3) {
+    *high_reg = byte_2;
+    *low_reg = byte_3;
+    
+    state->pc += 2;
+    return;
+}
+
+// LXI Stack Pointer: SP.hi <- byte 3, SP.lo <- byte 2
+// Flags: None
+// Op Size: 3
+void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
+    uint16_t adr = GetMemoryAdr(byte_3, byte_2);
+    state->sp = adr;
+    state->pc += 2;
+    return;
+}
+
+// LDA: A <- (adr)
+// Flags: None
+// Op Size: 3
+void LdaOpCode(State8080 *state, uint16_t adr) {
+    state->a = state->memory[adr];
+
+    state->pc += 2;
+    return;
+}
+
+// STA: (adr) <- A
+// Flags: None
+// Op Size: 3
+void StaOpCode(State8080 *state, uint16_t adr) {
+    state->memory[adr] = state->a;
+
+    state->pc += 2;
+    return;
+}
+
+// LHLD: L <- (adr); H<-(adr+1)
+// Flags: None
+// Op Size: 3
+void LhldOpCode(State8080 *state, uint16_t adr) {
+    state->l = state->memory[adr];
+    state->h = state->memory[adr + 1];
+
+    state->pc += 2;
+    return;
+}
+
+// SHLD: (adr) <-L; (adr+1)<-H
+// Flags: None
+// Op Size: 3
+void ShldOpCode(State8080 *state, uint16_t adr) {
+    state->memory[adr] = state->l;
+    state->memory[adr + 1] = state->h;
+
+    state->pc += 2;
+    return;
+}
+
+// LDAX: A <- (reg_pair)
+// Flags: None
+// Op Size: 1
+void LdaxOpCode(State8080 *state, uint16_t reg_pair) {
+    state->a = state->memory[reg_pair];
+    return;
+}
+
+// STAX: ([high_reg][low_reg]) <- A
+// Flags: None
+// Op Size: 1
+void StaxOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
+    uint16_t adr = GetMemoryAdr(high_reg, low_reg);
+
+    state->memory[adr] = state->a;
+    return;
+}
+
+// XCHG: H <-> D; L <-> E
+// Flags: None
+// Op Size: 1
+void XchgOpCode(State8080 *state) {
+    uint8_t temp_d_reg = state->d;
+    uint8_t temp_e_reg = state->e;
+    uint8_t temp_h_reg = state->h;
+    uint8_t temp_l_reg = state->l;
+
+    state->h = temp_d_reg;
+    state->d = temp_h_reg;
+
+    state->l = temp_e_reg;
+    state->e = temp_l_reg;
+
+    return;
+}
+
+// --------------------------------
+// ------- Arithmetic Funcs -------
+// --------------------------------
 
 // ADD: A <- A + reg
 // Flags: Z, S, P, CY, AC
@@ -115,20 +232,6 @@ void SubOpCode(State8080 *state, uint8_t *reg) {
     return;
 }
 
-// SBB: A <- A - (reg) - CY
-// Flags: Z, S, P, CY, AC
-// Op Size: 1
-void SbbOpCode(State8080 *state, uint8_t *reg) {
-    // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a - (uint16_t) *reg - (uint16_t) state->cc.cy;
-
-    HandleZeroSignParityFlags(state, answer);
-    state->cc.cy = ((uint16_t) *reg + (uint16_t) state->cc.cy) > (uint16_t) state->a;
-
-    state->a = (uint8_t)(answer & 0xff);
-    return;
-}
-
 // SUI: A <- A - data
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
@@ -144,6 +247,20 @@ void SuiOpCode(State8080 *state, uint8_t byte_2) {
     return;
 }
 
+// SBB: A <- A - (reg) - CY
+// Flags: Z, S, P, CY, AC
+// Op Size: 1
+void SbbOpCode(State8080 *state, uint8_t *reg) {
+    // Cast to 16-bit to more easily check for a carry
+    uint16_t answer = (uint16_t) state->a - (uint16_t) *reg - (uint16_t) state->cc.cy;
+
+    HandleZeroSignParityFlags(state, answer);
+    state->cc.cy = ((uint16_t) *reg + (uint16_t) state->cc.cy) > (uint16_t) state->a;
+
+    state->a = (uint8_t)(answer & 0xff);
+    return;
+}
+
 // SBI: A <- A - data - CY
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
@@ -156,74 +273,6 @@ void SbiOpCode(State8080 *state, uint8_t byte_2) {
 
     state->a = (uint8_t)(answer & 0xff);
     state->pc += 1;
-    return;
-}
-
-// LXI: high_reg <- byte 2, low_reg <- byte 3
-// Flags: None
-// Op Size: 3
-void LxiOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byte_2, uint8_t byte_3) {
-    *high_reg = byte_2;
-    *low_reg = byte_3;
-    
-    state->pc += 2;
-    return;
-}
-
-// LXI: SP.hi <- byte 3, SP.lo <- byte 2
-// Flags: None
-// Op Size: 3
-void LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
-    uint16_t adr = GetMemoryAdr(byte_3, byte_2);
-    state->sp = adr;
-    state->pc += 2;
-    return;
-}
-
-// MOV: dest_reg <- send_reg
-// Flags: None
-// Op Size: 1
-void MovOpCode(uint8_t *dest_reg, uint8_t *send_reg) {
-    *dest_reg = *send_reg;
-    return;
-}
-
-// MVI: dest_reg <- byte 2
-// Flags: None
-// Op Size: 2
-void MviOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
-    *dest_reg = byte_2;
-    state->pc += 1;
-    return;
-}
-
-// STAX: ([high_reg][low_reg]) <- A
-// Flags: None
-// Op Size: 1
-void StaxOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
-    uint16_t adr = GetMemoryAdr(high_reg, low_reg);
-
-    state->memory[adr] = state->a;
-    return;
-}
-
-// INX: [Register Pair] <- [Register Pair] + 1
-// Flags: None
-// Op Size: 1
-void InxOpCode(uint8_t *high_reg, uint8_t *low_reg) {
-    uint16_t adr = GetMemoryAdr(*high_reg, *low_reg);
-    adr += 1;
-
-    *high_reg = (adr >> 8) & 0xFF;
-    *low_reg = (adr & 0xFF);
-    return;
-}
-
-// INX: Stack Pointer = Stack Pointer + 1
-// Flags: None
-// Op Size: 1
-void InxStackPointerOpCode(State8080 *state) {
-    state->sp += 1;
     return;
 }
 
@@ -249,41 +298,23 @@ void DcrOpCode(State8080 *state, uint8_t *reg) {
     return;
 }
 
-// RLC: A = A << 1; bit 0 = prev bit 7; CY = prev bit 7
-// Flags: CY
-// Op Size: 1
-void RlcOpCode(State8080 *state) {
-    uint8_t value = state->a;
-    uint8_t bit_seven_value = value >> 7;
-
-    value = value << 1;
-    state->cc.cy = bit_seven_value;
-    value = value | bit_seven_value;
-
-    state->a = value;
-    return;
-}
-
-// DAD: HL = HL + (reg_pair)
-// Flags: CY
-// Op Size: 1
-void DadOpCode(State8080 *state, uint16_t reg_pair) {
-    uint32_t hl_adr = (uint32_t) GetMemoryAdr(state->h, state->l);
-
-    hl_adr = hl_adr + (uint32_t) reg_pair;
-    state->cc.cy = (hl_adr > 0xFFFF);
-
-    state->h = (uint8_t) ((hl_adr & 0xFFFF) >> 8);
-    state->l = (uint8_t) (hl_adr & 0xFF);
-    
-    return;
-}
-
-// LDAX: A <- (reg_pair)
+// INX: [Register Pair] <- [Register Pair] + 1
 // Flags: None
 // Op Size: 1
-void LdaxOpCode(State8080 *state, uint16_t reg_pair) {
-    state->a = state->memory[reg_pair];
+void InxOpCode(uint8_t *high_reg, uint8_t *low_reg) {
+    uint16_t adr = GetMemoryAdr(*high_reg, *low_reg);
+    adr += 1;
+
+    *high_reg = (adr >> 8) & 0xFF;
+    *low_reg = (adr & 0xFF);
+    return;
+}
+
+// INX: Stack Pointer = Stack Pointer + 1
+// Flags: None
+// Op Size: 1
+void InxStackPointerOpCode(State8080 *state) {
+    state->sp += 1;
     return;
 }
 
@@ -304,6 +335,160 @@ void DcxOpCode(uint8_t *high_reg, uint8_t *low_reg) {
 // Op Size: 1
 void DcxStackPointerOpCode(State8080 *state) {
     state->sp -= 1;
+    return;
+}
+
+// DAD: HL = HL + (reg_pair)
+// Flags: CY
+// Op Size: 1
+void DadOpCode(State8080 *state, uint16_t reg_pair) {
+    uint32_t hl_adr = (uint32_t) GetMemoryAdr(state->h, state->l);
+
+    hl_adr = hl_adr + (uint32_t) reg_pair;
+    state->cc.cy = (hl_adr > 0xFFFF);
+
+    state->h = (uint8_t) ((hl_adr & 0xFFFF) >> 8);
+    state->l = (uint8_t) (hl_adr & 0xFF);
+    
+    return;
+}
+
+// DAA: special
+// Flags: None
+// Op Size: 1
+void DaaOpCode(State8080 *state) {
+    // TODO
+    return;
+}
+
+// --------------------------------
+// --------- Logical Funcs --------
+// --------------------------------
+
+// ANA: A <- A & reg
+// Flags: Z, S, P, CY, AC
+// Op Size: 1
+void AnaOpCode(State8080 *state, uint8_t *reg) {
+    uint8_t answer = state->a & *reg;    
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY Flag
+    state->cc.ac = ((state->a & 0x8) >> 3) | ((*reg & 0x8) >> 3); // AC is the OR of 3rd-bit from both initial operands
+
+    state->a = (uint8_t) answer;
+    return;
+}
+
+// ANI: A <- A & byte_2
+// Flags: Z, S, P, CY, AC
+// Op Size: 2
+void AniOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t answer = state->a & byte_2;    
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY flag
+    state->cc.ac = ((state->a & 0x8) >> 3) | ((byte_2 & 0x8) >> 3); // AC is the OR of 3rd-bit from both initial operands
+
+    state->a = (uint8_t) answer;
+    state->pc += 1;
+    return;
+}
+
+// XRA: A <- A ^ reg
+// Flags: Z, S, P, CY, AC
+// Op Size: 1
+void XraOpCode(State8080 *state, uint8_t *reg) {
+    uint8_t answer = state->a ^ *reg;    
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY Flag
+    state->cc.ac = 0; // Clears out AC Flag
+
+    state->a = (uint8_t) answer;
+    return;
+}
+
+// 	XRI: A <- A ^ data
+// Flags: Z, S, P, CY, AC
+// Op Size: 2
+void XriOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t answer = state->a ^ byte_2;    
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY Flag
+    state->cc.ac = 0; // Clears out AC Flag
+
+    state->a = (uint8_t) answer;
+    state->pc += 1;
+    return;
+}
+
+// ORA: A <- A | reg
+// Flags: Z, S, P, CY, AC
+// Op Size: 1
+void OraOpCode(State8080 *state, uint8_t *reg) {
+    uint8_t answer = state->a | *reg;
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY Flag
+    state->cc.ac = 0; // Clears out AC Flag
+
+    state->a = (uint8_t) answer;
+    return;
+}
+
+// ORI: A <- A | byte_2
+// Flags: Z, S, P, CY, AC
+// Op Size: 2
+void OriOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t answer = state->a | byte_2;
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = 0; // Clears out CY Flag
+    state->cc.ac = 0; // Clears out AC Flag
+
+    state->a = (uint8_t) answer;
+    state->pc += 1;
+    return;
+}
+
+// CMP: A - reg
+// Flags: Z, S, P, CY, AC
+// Op Size: 1
+void CmpOpCode(State8080 *state, uint8_t reg) {
+    uint8_t answer = state->a - reg;
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = (reg > state->a);
+
+    return;
+}
+
+// CPI: A - byte_2
+// Flags: Z, S, P, CY, AC
+// Op Size: 2
+void CpiOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t answer = state->a - byte_2;
+
+    HandleZeroSignParityFlags(state, (uint16_t) answer);
+    state->cc.cy = (byte_2 > state->a);
+
+    state->pc +=1;
+    return;
+}
+
+// RLC: A = A << 1; bit 0 = prev bit 7; CY = prev bit 7
+// Flags: CY
+// Op Size: 1
+void RlcOpCode(State8080 *state) {
+    uint8_t value = state->a;
+    uint8_t bit_seven_value = value >> 7;
+
+    value = value << 1;
+    state->cc.cy = bit_seven_value;
+    value = value | bit_seven_value;
+
+    state->a = value;
     return;
 }
 
@@ -352,63 +537,11 @@ void RarOpCode(State8080 *state) {
     return;
 }
 
-// SHLD: (adr) <-L; (adr+1)<-H
-// Flags: None
-// Op Size: 3
-void ShldOpCode(State8080 *state, uint16_t adr) {
-    state->memory[adr] = state->l;
-    state->memory[adr + 1] = state->h;
-
-    state->pc += 2;
-    return;
-}
-
-
-
-// LHLD: L <- (adr); H<-(adr+1)
-// Flags: None
-// Op Size: 3
-void LhldOpCode(State8080 *state, uint16_t adr) {
-    state->l = state->memory[adr];
-    state->h = state->memory[adr + 1];
-
-    state->pc += 2;
-    return;
-}
-
 // CMA: A <- !A
 // Flags: None
 // Op Size: 1
 void CmaOpCode(State8080 *state) {
     state->a = ~state->a;
-    return;
-}
-
-// STA: (adr) <- A
-// Flags: None
-// Op Size: 3
-void StaOpCode(State8080 *state, uint16_t adr) {
-    state->memory[adr] = state->a;
-
-    state->pc += 2;
-    return;
-}
-
-// STC: CY = 1
-// Flags: CY
-// Op Size: 1
-void StcOpCode(State8080 *state) {
-    state->cc.cy = 1;
-    return;
-}
-
-// LDA: A <- (adr)
-// Flags: None
-// Op Size: 3
-void LdaOpCode(State8080 *state, uint16_t adr) {
-    state->a = state->memory[adr];
-
-    state->pc += 2;
     return;
 }
 
@@ -420,59 +553,17 @@ void CmcOpCode(State8080 *state) {
     return;
 }
 
-// ANA: A <- A & reg
-// Flags: Z, S, P, CY, AC
+// STC: CY = 1
+// Flags: CY
 // Op Size: 1
-void AnaOpCode(State8080 *state, uint8_t *reg) {
-    uint8_t answer = state->a & *reg;    
-
-    HandleZeroSignParityFlags(state, (uint16_t) answer);
-    state->cc.cy = 0; // Clears out CY Flag
-    state->cc.ac = ((state->a & 0x8) >> 3) | ((*reg & 0x8) >> 3); // AC is the OR of 3rd-bit from both initial operands
-
-    state->a = (uint8_t) answer;
+void StcOpCode(State8080 *state) {
+    state->cc.cy = 1;
     return;
 }
 
-// XRA: A <- A ^ reg
-// Flags: Z, S, P, CY, AC
-// Op Size: 1
-void XraOpCode(State8080 *state, uint8_t *reg) {
-    uint8_t answer = state->a ^ *reg;    
-
-    HandleZeroSignParityFlags(state, (uint16_t) answer);
-    state->cc.cy = 0; // Clears out CY Flag
-    state->cc.ac = 0; // Clears out AC Flag
-
-    state->a = (uint8_t) answer;
-    return;
-}
-
-// ORA: A <- A | reg
-// Flags: Z, S, P, CY, AC
-// Op Size: 1
-void OraOpCode(State8080 *state, uint8_t *reg) {
-    uint8_t answer = state->a | *reg;
-
-    HandleZeroSignParityFlags(state, (uint16_t) answer);
-    state->cc.cy = 0; // Clears out CY Flag
-    state->cc.ac = 0; // Clears out AC Flag
-
-    state->a = (uint8_t) answer;
-    return;
-}
-
-// CMP: A - reg
-// Flags: Z, S, P, CY, AC
-// Op Size: 1
-void CmpOpCode(State8080 *state, uint8_t reg) {
-    uint8_t answer = state->a - reg;
-
-    HandleZeroSignParityFlags(state, (uint16_t) answer);
-    state->cc.cy = (reg > state->a);
-
-    return;
-}
+// --------------------------------
+// --------- Branch Funcs ---------
+// --------------------------------
 
 // JMP: PC <= adr
 // Flags: None
@@ -539,6 +630,45 @@ void JcOpCode(State8080 *state, uint16_t adr) {
 // Op Size: 3
 void JpoOpCode(State8080 *state, uint16_t adr) {
     if (!state->cc.p) {
+        state->pc = adr - 1;
+    } else {
+        state->pc += 2;
+    }
+
+    return;
+}
+
+// JPE: If Parity Even (cc.p == 1) PC <- adr
+// Flags: None
+// Op Size: 3
+void JpeOpCode(State8080 *state, uint16_t adr) {
+    if (state->cc.p) {
+        state->pc = adr - 1;
+    } else {
+        state->pc += 2;
+    }
+
+    return;
+}
+
+// JP: If Positive (cc.s == 0), PC <- adr
+// Flags: None
+// Op Size: 3
+void JpOpCode(State8080 *state, uint16_t adr) {
+    if (!state->cc.s) {
+        state->pc = adr - 1;
+    } else {
+        state->pc += 2;
+    }
+
+    return;
+}
+
+// JM: If Negative (cc.s == 1), PC <- adr
+// Flags: None
+// Op Size: 3
+void JmOpCode(State8080 *state, uint16_t adr) {
+    if (state->cc.s) {
         state->pc = adr - 1;
     } else {
         state->pc += 2;
@@ -616,60 +746,55 @@ void CcOpCode(State8080 *state, uint16_t adr) {
     return;
 }
 
-// RST: CALL hard-coded adr
+// CPO: if Parity Odd, CALL adr
 // Flags: None
-// Op Size: 1
-void RstOpCode(State8080 *state, uint16_t adr) {
-    uint16_t ret_adr = state->pc;
-
-    uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
-    uint8_t pc_low = (uint8_t) (ret_adr & 0xFF);
-    
-    state->memory[state->sp - 1] = pc_high;
-    state->memory[state->sp - 2] = pc_low;
-
-    state->sp -= 2;
-    state->pc = adr - 1;
+// Op Size: 3
+void CpoOpCode(State8080 *state, uint16_t adr) {
+    if (!state->cc.p) {
+        CallOpCode(state, adr);
+    } else {
+        state->pc += 2;
+    }
 
     return;
 }
 
-// PUSH: (sp-2)<-low_reg; (sp-1)<-high_reg; sp <- sp - 2
+// CPE: If Parity Even, CALL adr
 // Flags: None
-// Op Size: 1
-void PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
-    uint8_t *high_reg_sink = &state->memory[state->sp-1];
-    uint8_t *low_reg_sink = &state->memory[state->sp-2];
+// Op Size: 3
+void CpeOpCode(State8080 *state, uint16_t adr) {
+    if (state->cc.p) {
+        CallOpCode(state, adr);
+    } else {
+        state->pc += 2;
+    }
 
-    *high_reg_sink = high_reg;
-    *low_reg_sink = low_reg;
-
-    state->sp -= 2;
     return;
 }
 
-// PUSH PSW: (sp-2)<-flags; (sp-1)<-A; sp <- sp - 2
+// CP: if Positive (cc.s == 0), PC <- adr
 // Flags: None
-// Op Size: 1
-void PushPswOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
-    // TODO
+// Op Size: 3
+void CpOpCode(State8080 *state, uint16_t adr) {
+    if (!state->cc.s) {
+        CallOpCode(state, adr);
+    } else {
+        state->pc += 2;
+    }
+
     return;
 }
 
-// POP: low_reg <- (sp); high_reg <- (sp+1); sp <- sp+2
+// CM: If Negative (cc.s == 1), PC <- adr
 // Flags: None
-// Op Size: 1
-void PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
-    *high_reg = state->memory[state->sp + 1];
-    *low_reg = state->memory[state->sp];
+// Op Size: 3
+void CmOpCode(State8080 *state, uint16_t adr) {
+    if (state->cc.s) {
+        CallOpCode(state, adr);
+    } else {
+        state->pc += 2;
+    }
 
-    state->sp += 2;
-    return;
-}
-
-// POP PSW: flags <- (sp); A <- (sp+1); sp <- sp+2
-void PopPswOpCode(State8080 *state) {
-    // TODO
     return;
 }
 
@@ -741,6 +866,110 @@ void RpoOpCode(State8080 *state) {
     return;
 }
 
+// RPE: if Parity Even (cc.p == 1), RET
+// Flags: None
+// Op Size: 1
+void RpeOpCode(State8080 *state) {
+    if (state->cc.p) {
+        RetOpCode(state);
+    }
+
+    return;
+}
+
+// RP: If Sign flag Positive (cc.s == 0), RET
+// Flags: None
+// Op Size: 1
+void RpOpCode(State8080 *state) {
+    if (!state->cc.s) {
+        RetOpCode(state);
+    }
+
+    return;
+}
+
+// RM: if negative (cc.s == 1), RET
+// Flags: None
+// Op Size: 1
+void RmOpCode(State8080 *state) {
+    if (state->cc.s) {
+        RetOpCode(state);
+    }
+
+    return;
+}
+
+// RST: CALL hard-coded adr
+// Flags: None
+// Op Size: 1
+void RstOpCode(State8080 *state, uint16_t adr) {
+    uint16_t ret_adr = state->pc;
+
+    uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
+    uint8_t pc_low = (uint8_t) (ret_adr & 0xFF);
+    
+    state->memory[state->sp - 1] = pc_high;
+    state->memory[state->sp - 2] = pc_low;
+
+    state->sp -= 2;
+    state->pc = adr - 1;
+
+    return;
+}
+
+// PCHL: PC.hi <- H; PC.lo <- L
+// Flags: None
+// Op Size: 1
+void PchlOpCode(State8080 *state) {
+    uint16_t new_pc = GetMemoryAdr(state->h, state->l);
+    state->pc = new_pc - 1;
+
+    return;
+}
+
+// ----------------------------------------
+// --- Stack, IO, Machine Control Funcs ---
+// ----------------------------------------
+
+// PUSH: (sp-2)<-low_reg; (sp-1)<-high_reg; sp <- sp - 2
+// Flags: None
+// Op Size: 1
+void PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
+    uint8_t *high_reg_sink = &state->memory[state->sp-1];
+    uint8_t *low_reg_sink = &state->memory[state->sp-2];
+
+    *high_reg_sink = high_reg;
+    *low_reg_sink = low_reg;
+
+    state->sp -= 2;
+    return;
+}
+
+// PUSH PSW: (sp-2)<-flags; (sp-1)<-A; sp <- sp - 2
+// Flags: None
+// Op Size: 1
+void PushPswOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
+    // TODO
+    return;
+}
+
+// POP: low_reg <- (sp); high_reg <- (sp+1); sp <- sp+2
+// Flags: None
+// Op Size: 1
+void PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
+    *high_reg = state->memory[state->sp + 1];
+    *low_reg = state->memory[state->sp];
+
+    state->sp += 2;
+    return;
+}
+
+// POP PSW: flags <- (sp); A <- (sp+1); sp <- sp+2
+void PopPswOpCode(State8080 *state) {
+    // TODO
+    return;
+}
+
 // XTHL: L <-> (SP); H <-> (SP+1)
 // Flags: None
 // Op Size: 1
@@ -758,11 +987,13 @@ void XthlOpCode(State8080 *state) {
     return;
 }
 
-// DAA: special
+// SPHL: SP=HL
 // Flags: None
 // Op Size: 1
-void DaaOpCode(State8080 *state) {
-    // TODO
+void SphlOpCode(State8080 *state) {
+    uint16_t hl_adr = GetMemoryAdr(state->h, state->l);
+    state->sp = hl_adr;
+
     return;
 }
 
@@ -771,6 +1002,7 @@ void DaaOpCode(State8080 *state) {
 // Op Size: 2
 void InOpCode(State8080 *state, uint8_t byte_2) {
     // TODO
+    printf("%x", byte_2);
     return;
 }
 
@@ -779,14 +1011,37 @@ void InOpCode(State8080 *state, uint8_t byte_2) {
 // Op Size: 2
 void OutOpCode(State8080 *state, uint8_t byte_2) {
     // TODO
+    printf("%x", byte_2);
+    return;
+}
+
+// EI: Enable Interrupt Flag
+// Flags: None
+// Op Size: 1
+void EiOpCode(State8080 *state) {
+    state->int_enable = 1;
+    return;
+}
+
+// DI: Clear Interrupt Flag
+// Flags: None
+// Op Size: 1
+void DiOpCode(State8080 *state) {
+    state->int_enable = 0;
     return;
 }
 
 // HLT: special
 // Flags: None
 // Op Size: 1
-void HltOpCode(State8080 *state) {
-    // TODO
+void HltOpCode() {
+    exit(0);
+}
+
+// NOP: Do Nothing
+// Flags: None
+// Op Size: 1
+void NopOpCode() {
     return;
 }
 
@@ -1149,7 +1404,7 @@ int Emulate8080Op(State8080* state) {
             MovOpCode(&state->memory[GetMemoryAdr(state->h, state->l)], &state->l);
             break;
         case 0x76: // HLT
-            UnimplementedInstruction(state);
+            HltOpCode();
             break;
         case 0x77: // MOV M, A
             MovOpCode(&state->memory[GetMemoryAdr(state->h, state->l)], &state->a);
@@ -1428,7 +1683,7 @@ int Emulate8080Op(State8080* state) {
             JncOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xD3: // OUT D8
-            UnimplementedInstruction(state);
+            OutOpCode(state, opcode[1]);
             break;
         case 0xD4: // CNC adr
             CncOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
@@ -1452,7 +1707,7 @@ int Emulate8080Op(State8080* state) {
             JcOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xDB: // IN D8
-            UnimplementedInstruction(state);
+            InOpCode(state, opcode[1]);
             break;
         case 0xDC: // CC adr
             CcOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
@@ -1479,85 +1734,85 @@ int Emulate8080Op(State8080* state) {
             XthlOpCode(state);
             break;
         case 0xE4: // CPO adr
-            UnimplementedInstruction(state);
+            CpoOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xE5: // PUSH H
             PushOpCode(state, state->h, state->l);
             break;
         case 0xE6: // ANI D8
-            UnimplementedInstruction(state);
+            AniOpCode(state, opcode[1]);
             break;
         case 0xE7: // RST 4
             RstOpCode(state, 0x20);
             break;
         case 0xE8: // RPE
-            UnimplementedInstruction(state);
+            RpeOpCode(state);
             break;
         case 0xE9: // PCHL
-            UnimplementedInstruction(state);
+            PchlOpCode(state);
             break;
         case 0xEA: // JPE adr
-            UnimplementedInstruction(state);
+            JpeOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xEB: // XCHG
-            UnimplementedInstruction(state);
+            XchgOpCode(state);
             break;
         case 0xEC: // CPE adr
-            UnimplementedInstruction(state);
+            CpeOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xED: // CALL adr
             CallOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xEE: // XRI D8
-            UnimplementedInstruction(state);
+            XriOpCode(state, opcode[1]);
             break;
         case 0xEF: // RST 5
             RstOpCode(state, 0x28);
             break;
         case 0xF0: // RP
-            UnimplementedInstruction(state);
+            RpOpCode(state);
             break;
         case 0xF1: // POP PSW
             UnimplementedInstruction(state);
             break;
         case 0xF2: // JP adr
-            UnimplementedInstruction(state);
+            JpOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xF3: // DI
-            UnimplementedInstruction(state);
+            DiOpCode(state);
             break;
         case 0xF4: // CP adr
-            UnimplementedInstruction(state);
+            CpOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xF5: // PUSH PSW
             UnimplementedInstruction(state);
             break;
         case 0xF6: // ORI D8
-            UnimplementedInstruction(state);
+            OriOpCode(state, opcode[1]);
             break;
         case 0xF7: // RST 6
             RstOpCode(state, 0x30);
             break;
         case 0xF8: // RM
-            UnimplementedInstruction(state);
+            RmOpCode(state);
             break;
         case 0xF9: // SPHL
-            UnimplementedInstruction(state);
+            SphlOpCode(state);
             break;
         case 0xFA: // JM adr
-            UnimplementedInstruction(state);
+            JmOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xFB: // EI
-            UnimplementedInstruction(state);
+            EiOpCode(state);
             break;
         case 0xFC: // CM adr
-            UnimplementedInstruction(state);
+            CmOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xFD: // CALL adr
             CallOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xFE: // CPI D8
-            UnimplementedInstruction(state);
+            CpiOpCode(state, opcode[1]);
             break;
         case 0xFF: // RST 7
             RstOpCode(state, 0x38);
