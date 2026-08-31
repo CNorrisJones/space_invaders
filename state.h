@@ -115,7 +115,7 @@ void PchlOpCode(State8080 *state);
 
 // Stack, IO, Machine Control Funcs
 void PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg);
-void PushPswOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg);
+void PushPswOpCode(State8080 *state);
 void PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg);
 void PopPswOpCode(State8080 *state);
 void XthlOpCode(State8080 *state);

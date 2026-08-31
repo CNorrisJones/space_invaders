@@ -357,6 +357,9 @@ void DadOpCode(State8080 *state, uint16_t reg_pair) {
 // Flags: None
 // Op Size: 1
 void DaaOpCode(State8080 *state) {
+    // If 4 least bits are > 9, or AC flag == 1, add 6 to state->a
+    // If 4 greatest bits are now > 9, or CY flag == 1, add 6 to most significant 4 bits
+
     // TODO
     return;
 }
@@ -948,8 +951,20 @@ void PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
 // PUSH PSW: (sp-2)<-flags; (sp-1)<-A; sp <- sp - 2
 // Flags: None
 // Op Size: 1
-void PushPswOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
-    // TODO
+void PushPswOpCode(State8080 *state) {
+    uint8_t flags_byte =
+        (state->cc.s  << 7) |
+        (state->cc.z  << 6) |
+        (0            << 5) |
+        (state->cc.ac << 4) |
+        (0            << 3) |
+        (state->cc.p  << 2) |
+        (1            << 1) |
+        (state->cc.cy << 0);
+
+    state->memory[state->sp - 2] = flags_byte;
+    state->memory[state->sp - 1] = state->a;    
+    state->sp -= 2;
     return;
 }
 
@@ -966,7 +981,16 @@ void PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
 
 // POP PSW: flags <- (sp); A <- (sp+1); sp <- sp+2
 void PopPswOpCode(State8080 *state) {
-    // TODO
+    uint8_t flag_byte = state->memory[state->sp];
+
+    state->cc.cy = (flag_byte & 0x01) != 0;  // SP0 -> CY, 0th-bit bitmask = 0x01
+    state->cc.p  = (flag_byte & 0x04) != 0;  // SP2 -> P,  2nd-bit bitmask = 0x04
+    state->cc.ac = (flag_byte & 0x10) != 0;  // SP4 -> AC, 4th-bit bitmask = 0x10
+    state->cc.z  = (flag_byte & 0x40) != 0;  // SP6 -> Z,  6th-bit bitmask = 0x40
+    state->cc.s  = (flag_byte & 0x80) != 0;  // SP7 -> S,  7th-bit bitmask = 0x80
+    
+    state->a = state->memory[state->sp + 1];
+    state->sp += 2;
     return;
 }
 
@@ -1773,7 +1797,7 @@ int Emulate8080Op(State8080* state) {
             RpOpCode(state);
             break;
         case 0xF1: // POP PSW
-            UnimplementedInstruction(state);
+            PopPswOpCode(state);
             break;
         case 0xF2: // JP adr
             JpOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
@@ -1785,7 +1809,7 @@ int Emulate8080Op(State8080* state) {
             CpOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xF5: // PUSH PSW
-            UnimplementedInstruction(state);
+            PushPswOpCode(state);
             break;
         case 0xF6: // ORI D8
             OriOpCode(state, opcode[1]);
