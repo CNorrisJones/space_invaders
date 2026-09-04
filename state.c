@@ -169,6 +169,7 @@ void AddOpCode(State8080 *state, uint8_t *reg) {
 
     HandleZeroSignParityFlags(state, answer);
     state->cc.cy = (answer > 0xff);
+    state->cc.ac = (((state->a & 0x0F) + (*reg & 0x0F)) > 0x0F);
 
     state->a = (uint8_t)(answer & 0xff);
     return;
@@ -177,12 +178,13 @@ void AddOpCode(State8080 *state, uint8_t *reg) {
 // ADI: A <- A + added_byte
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
-void AdiOpCode(State8080 *state, uint8_t added_byte) {
+void AdiOpCode(State8080 *state, uint8_t byte_2) {
     // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a + (uint16_t) added_byte;    
+    uint16_t answer = (uint16_t) state->a + (uint16_t) byte_2;    
 
     HandleZeroSignParityFlags(state, answer);
     state->cc.cy = (answer > 0xff);
+    state->cc.ac = (((state->a & 0x0F) + (byte_2 & 0x0F)) > 0x0F);
 
     state->a = (uint8_t)(answer & 0xff);
     state->pc += 1;
@@ -193,11 +195,14 @@ void AdiOpCode(State8080 *state, uint8_t added_byte) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 void AdcOpCode(State8080 *state, uint8_t *reg) {
+    uint8_t carry_flag = state->cc.cy;
+
     // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a + (uint16_t) *reg + (uint16_t) state->cc.cy;    
+    uint16_t answer = (uint16_t) state->a + (uint16_t) *reg + (uint16_t) carry_flag;    
 
     HandleZeroSignParityFlags(state, answer);
     state->cc.cy = (answer > 0xff);
+    state->cc.ac = (((state->a & 0x0F) + (*reg & 0x0F) + carry_flag) > 0x0F);
 
     state->a = (uint8_t)(answer & 0xff);
     return;
@@ -207,11 +212,14 @@ void AdcOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 void AciOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t carry_flag = state->cc.cy;
+
     // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a + (uint16_t) byte_2 + (uint16_t) state->cc.cy;    
+    uint16_t answer = (uint16_t) state->a + (uint16_t) byte_2 + (uint16_t) carry_flag;    
 
     HandleZeroSignParityFlags(state, answer);
     state->cc.cy = (answer > 0xff);
+    state->cc.ac = (((state->a & 0x0F) + (byte_2 & 0x0F) + carry_flag) > 0x0F);
 
     state->a = (uint8_t)(answer & 0xff);
     state->pc += 1;
@@ -226,7 +234,8 @@ void SubOpCode(State8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) state->a - (uint16_t) *reg;
 
     HandleZeroSignParityFlags(state, answer);
-    state->cc.cy = ((uint16_t) *reg > (uint16_t) state->a); // 
+    state->cc.cy = ((uint16_t) *reg > (uint16_t) state->a);
+    state->cc.ac = ((*reg & 0x0F) > (state->a & 0x0F));
 
     state->a = (uint8_t)(answer & 0xff);
     return;
@@ -241,6 +250,7 @@ void SuiOpCode(State8080 *state, uint8_t byte_2) {
 
     HandleZeroSignParityFlags(state, answer);
     state->cc.cy = ((uint16_t) byte_2 > (uint16_t) state->a);
+    state->cc.ac = ((byte_2 & 0x0F) > (state->a & 0x0F));
 
     state->a = (uint8_t)(answer & 0xff);
     state->pc += 1;
@@ -251,11 +261,14 @@ void SuiOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 void SbbOpCode(State8080 *state, uint8_t *reg) {
+    uint8_t carry_flag = state->cc.cy;
+
     // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a - (uint16_t) *reg - (uint16_t) state->cc.cy;
+    uint16_t answer = (uint16_t) state->a - (uint16_t) *reg - (uint16_t) carry_flag;
 
     HandleZeroSignParityFlags(state, answer);
-    state->cc.cy = ((uint16_t) *reg + (uint16_t) state->cc.cy) > (uint16_t) state->a;
+    state->cc.cy = ((uint16_t) *reg + (uint16_t) carry_flag) > (uint16_t) state->a;
+    state->cc.ac = (((*reg & 0x0F) + carry_flag) > (state->a & 0x0F));
 
     state->a = (uint8_t)(answer & 0xff);
     return;
@@ -265,11 +278,14 @@ void SbbOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 void SbiOpCode(State8080 *state, uint8_t byte_2) {
+    uint8_t carry_flag = state->cc.cy;
+
     // Cast to 16-bit to more easily check for a carry
-    uint16_t answer = (uint16_t) state->a - (uint16_t) byte_2 - (uint16_t) state->cc.cy;
+    uint16_t answer = (uint16_t) state->a - (uint16_t) byte_2 - (uint16_t) carry_flag;
 
     HandleZeroSignParityFlags(state, answer);
-    state->cc.cy = ((uint16_t) byte_2 + (uint16_t) state->cc.cy) > (uint16_t) state->a;
+    state->cc.cy = ((uint16_t) byte_2 + (uint16_t) carry_flag) > (uint16_t) state->a;
+    state->cc.ac = (((byte_2 & 0x0F) + carry_flag) > (state->a & 0x0F));
 
     state->a = (uint8_t)(answer & 0xff);
     state->pc += 1;
@@ -283,6 +299,8 @@ void InrOpCode(State8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg + 1;
 
     HandleZeroSignParityFlags(state, answer);
+    state->cc.ac = (((*reg & 0x0F) + 0x01) > 0x0F);
+
     *reg = answer;
     return;
 }
@@ -294,6 +312,8 @@ void DcrOpCode(State8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg - 1;
 
     HandleZeroSignParityFlags(state, answer);
+    state->cc.ac = ((*reg & 0x0F) == 0x0);
+
     *reg = answer;
     return;
 }
@@ -354,13 +374,33 @@ void DadOpCode(State8080 *state, uint16_t reg_pair) {
 }
 
 // DAA: special
-// Flags: None
+// Flags: Z, S, P, CY, AC
 // Op Size: 1
 void DaaOpCode(State8080 *state) {
     // If 4 least bits are > 9, or AC flag == 1, add 6 to state->a
     // If 4 greatest bits are now > 9, or CY flag == 1, add 6 to most significant 4 bits
+    // If CY flag was 1, it stays 1, if it was 0, then it flips to 1 if we go over
+    uint16_t answer = state->a;
 
-    // TODO
+    uint8_t lower_bits = (answer & 0x0F);
+
+    if ((lower_bits > 0x09) | (state->cc.ac != 0)) {
+        answer += 0x06;
+        state->cc.ac = 0x1;
+    } else {
+        state->cc.ac = 0x0;
+    }
+
+    uint8_t upper_bits = ((answer >> 4) & 0x0F);
+
+    if ((upper_bits > 0x09) | (state->cc.cy != 0)) {
+        answer += 0x60;  
+    } 
+
+    HandleZeroSignParityFlags(state, answer);
+    state->cc.cy = ((state->cc.cy != 0) | (answer > 0xff));
+
+    state->a = (uint8_t)(answer & 0xff);
     return;
 }
 
@@ -463,6 +503,7 @@ void CmpOpCode(State8080 *state, uint8_t reg) {
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
     state->cc.cy = (reg > state->a);
+    state->cc.ac = ((reg & 0x0F) > (state->a & 0x0F));
 
     return;
 }
@@ -475,6 +516,7 @@ void CpiOpCode(State8080 *state, uint8_t byte_2) {
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
     state->cc.cy = (byte_2 > state->a);
+    state->cc.ac = ((byte_2 & 0x0F) > (state->a & 0x0F));
 
     state->pc +=1;
     return;
@@ -980,6 +1022,8 @@ void PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
 }
 
 // POP PSW: flags <- (sp); A <- (sp+1); sp <- sp+2
+// Flags: None
+// Op Size: 1
 void PopPswOpCode(State8080 *state) {
     uint8_t flag_byte = state->memory[state->sp];
 
@@ -1192,6 +1236,7 @@ int Emulate8080Op(State8080* state) {
             break;
         case 0x27: // DAA
             UnimplementedInstruction(state);
+            DaaOpCode(state);
             break;
         case 0x28: // NOP
             NopOpCode();
