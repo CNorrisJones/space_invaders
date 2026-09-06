@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "state.h"
+#include "disassembler.h"
 
 void UnimplementedInstruction(State8080 *state) {
     //pc will have advanced one, so undo that    
@@ -61,8 +62,8 @@ void MviOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
 // Flags: None
 // Op Size: 3
 void LxiOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byte_2, uint8_t byte_3) {
-    *high_reg = byte_2;
-    *low_reg = byte_3;
+    *high_reg = byte_3;
+    *low_reg = byte_2;
     
     state->pc += 2;
     return;
@@ -726,7 +727,7 @@ void JmOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 void CallOpCode(State8080 *state, uint16_t adr) {
-    uint16_t ret_adr = state->pc + 2;
+    uint16_t ret_adr = state->pc + 3;
 
     uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
     uint8_t pc_low = (uint8_t) (ret_adr & 0xFF);
@@ -1892,8 +1893,7 @@ int Emulate8080Op(State8080* state) {
     return 0;
 }
 
-State8080 *CreateTestState() {
-    const int KB_64 = 65536;
+State8080 *CreateTestState(uint16_t pc_init) {
     const uint8_t NULL_8_BIT = 0x00;
 
     State8080 *state = malloc(sizeof(State8080));
@@ -1901,7 +1901,7 @@ State8080 *CreateTestState() {
         return NULL;
     }
 
-    state->memory = calloc(KB_64, sizeof(uint8_t)); // calloc zeroes out the ROM/RAM space
+    state->memory = calloc(65536, sizeof(uint8_t)); // calloc zeroes out the ROM/RAM space
     if (state->memory == NULL) {
         free(state); // Clean up container if memory array allocation fails
         return NULL;
@@ -1909,15 +1909,15 @@ State8080 *CreateTestState() {
 
     // 3. Initialize General Purpose Registers (8-bit)
     state->a = NULL_8_BIT;
-    state->b = 0x01;
-    state->c = 0x01;
+    state->b = NULL_8_BIT;
+    state->c = NULL_8_BIT;
     state->d = NULL_8_BIT;
     state->e = NULL_8_BIT;
     state->h = NULL_8_BIT;
     state->l = NULL_8_BIT;
 
     // 4. Initialize Address Registers (16-bit)
-    state->pc = 0x0000;  // Code execution normally starts at address 0
+    state->pc = pc_init;  // Code execution normally starts at address 0
     state->sp = 0xF000;  // Space Invaders RAM stack area typically starts high
 
     // 5. Initialize Condition Code Flags (Bit-fields)
@@ -1934,15 +1934,17 @@ State8080 *CreateTestState() {
     return state;
 }
 
+void LoadRomIntoState(State8080 *state, char *buffer, int buffer_len) {
+    for (int i = 0; i < buffer_len; i++) {
+        state->memory[i] = buffer[i];
+    }
+
+    return;
+}
+
 void FreeState(State8080 *state) {
     if (state != NULL) {
         free(state->memory);
         free(state);
     }
-}
-
-void TestState(State8080* state, uint8_t *command, size_t command_len) {
-    memcpy(&state->memory[state->pc], command, command_len);
-    Emulate8080Op(state);
-    return;
 }

@@ -128,8 +128,8 @@ void HltOpCode();
 void NopOpCode();
 
 int Emulate8080Op(State8080* state);
-State8080 *CreateTestState();
+State8080 *CreateTestState(uint16_t pc_init);
+void LoadRomIntoState(State8080 *state, char *buffer, int buffer_len);
 void FreeState(State8080 *state);
-void TestState(State8080* state, uint8_t *command, size_t command_len);
 
 #endif
