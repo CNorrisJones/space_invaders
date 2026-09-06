@@ -4,12 +4,6 @@
 #include "state.h"
 #include "disassembler.h"
 
-void UnimplementedInstruction(State8080 *state) {
-    //pc will have advanced one, so undo that    
-    printf ("Error: Unimplemented instruction\n");    
-    exit(1);    
-}
-
 uint8_t Parity(uint8_t input) {
     uint8_t bit_count = 0;
 
@@ -731,7 +725,7 @@ void CallOpCode(State8080 *state, uint16_t adr) {
 
     uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
     uint8_t pc_low = (uint8_t) (ret_adr & 0xFF);
-    
+
     state->memory[state->sp - 1] = pc_high;
     state->memory[state->sp - 2] = pc_low;
 
@@ -1236,7 +1230,6 @@ int Emulate8080Op(State8080* state) {
             MviOpCode(state, &state->h, opcode[1]);
             break;
         case 0x27: // DAA
-            UnimplementedInstruction(state);
             DaaOpCode(state);
             break;
         case 0x28: // NOP
@@ -1935,8 +1928,10 @@ State8080 *CreateTestState(uint16_t pc_init) {
 }
 
 void LoadRomIntoState(State8080 *state, char *buffer, int buffer_len) {
-    for (int i = 0; i < buffer_len; i++) {
-        state->memory[i] = buffer[i];
+    int b = 0;
+    for (int i = state->pc; i < (state->pc + buffer_len); i++) {
+        state->memory[i] = buffer[b];
+        b++;
     }
 
     return;

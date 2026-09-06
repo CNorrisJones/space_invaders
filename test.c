@@ -10,7 +10,7 @@ int main(int argc, char* argv[]) {
     int counter = 0;
     TestDisassembler(file_size, buffer);
 
-    State8080 *demo_state = CreateTestState(0x0000);
+    State8080 *demo_state = CreateTestState(0x0);
     LoadRomIntoState(demo_state, buffer, file_size);
 
     while(1) {
@@ -18,8 +18,6 @@ int main(int argc, char* argv[]) {
             printf("Break Point Here\n");
         }
 
-        
-        
         Disassemble8080Code(demo_state->memory, demo_state->pc);
         Emulate8080Op(demo_state);
         counter += 1;

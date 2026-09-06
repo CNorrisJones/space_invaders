@@ -27,8 +27,6 @@ typedef struct State8080 {
     uint8_t     int_enable;    
 } State8080;
 
-void UnimplementedInstruction(State8080 *state);
-
 // Helper Funcs
 uint8_t Parity(uint8_t input);
 uint16_t GetMemoryAdr(uint8_t high, uint8_t low);
