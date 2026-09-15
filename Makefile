@@ -2,25 +2,38 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
 TARGET = emulator
-SRCS = test.c disassembler.c state.c helper_funcs.c
-OBJS = $(SRCS:.c=.o)
+TEST_TARGET = test_runner
+
+SHARED_SRCS = disassembler.c state.c helper_funcs.c
+EMULATE_SRCS = emulate.c $(SHARED_SRCS)
+TEST_SRCS = test.c $(SHARED_SRCS)
+
+EMULATE_OBJS = $(EMULATE_SRCS:.c=.o)
+TEST_OBJS = $(TEST_SRCS:.c=.o)
+ALL_OBJS = emulate.o test.o disassembler.o state.o helper_funcs.o
 
 all: $(TARGET)
 
-# Rule to link the object files into the final executable binary
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
+$(TARGET): $(EMULATE_OBJS)
+	$(CC) $(CFLAGS) -o $(TARGET) $(EMULATE_OBJS)
 
-# Rule to compile each .c file into a temporary .o object file
+$(TEST_TARGET): $(TEST_OBJS)
+	$(CC) $(CFLAGS) -o $(TEST_TARGET) $(TEST_OBJS)
+
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
-# Clean Target - Run 'make clean' to wipe out compiled binaries and start fresh
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(TARGET) $(TEST_TARGET) $(ALL_OBJS)
 
 run: $(TARGET)
 	./$(TARGET) ./rom/invaders
 
+test: $(TEST_TARGET)
+	./$(TEST_TARGET)
+
 valgrind: $(TARGET)
 	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) ./rom/invaders
+
+test_valgrind: $(TEST_TARGET)
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TEST_TARGET)

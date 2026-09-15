@@ -27,6 +27,8 @@ typedef struct State8080 {
     uint8_t     int_enable;    
 } State8080;
 
+extern int is_test_cpu;
+
 // Helper Funcs
 uint8_t Parity(uint8_t input);
 uint16_t GetMemoryAdr(uint8_t high, uint8_t low);
@@ -127,7 +129,7 @@ void NopOpCode();
 
 int Emulate8080Op(State8080* state);
 State8080 *CreateTestState(uint16_t pc_init);
-void LoadRomIntoState(State8080 *state, char *buffer, int buffer_len);
+void LoadRomIntoState(State8080 *state, unsigned char *buffer, long buffer_len);
 void FreeState(State8080 *state);
 
 #endif

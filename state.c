@@ -4,6 +4,8 @@
 #include "state.h"
 #include "disassembler.h"
 
+int is_test_cpu = 0;
+
 uint8_t Parity(uint8_t input) {
     uint8_t bit_count = 0;
 
@@ -720,7 +722,29 @@ void JmOpCode(State8080 *state, uint16_t adr) {
 // CALL: (SP-1)<-PC.hi;(SP-2)<-PC.lo;SP<-SP-2;PC=adr
 // Flags: None
 // Op Size: 3
+// NOTE: Includes Debug Test check is the TEST_CPU ifdef is set, used with the diagnostic cpudiag.bin file
 void CallOpCode(State8080 *state, uint16_t adr) {
+    if (is_test_cpu) {
+        if (0x0005 ==  adr) {
+            if (state->c == 9) {
+                uint16_t offset = (state->d<<8) | (state->e);
+                uint8_t *str = &state->memory[offset+3];  //skip the prefix bytes
+                while (*str != '$') {
+                    printf("%c", *str++);
+                }
+                printf("\n");
+                exit(0);
+            } else if (state->c == 2) {
+                //saw this in the inspected code, never saw it called
+                printf ("print char routine called\n");
+                exit(0);
+            }
+        } else if (0x0000 ==  adr) {
+            printf("Ran into 0x000 Address");
+            exit(0);
+        }
+    }
+
     uint16_t ret_adr = state->pc + 3;
 
     uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
@@ -731,6 +755,8 @@ void CallOpCode(State8080 *state, uint16_t adr) {
 
     state->sp -= 2;
     state->pc = adr - 1;
+    
+
     return;
 }
 
@@ -1927,7 +1953,7 @@ State8080 *CreateTestState(uint16_t pc_init) {
     return state;
 }
 
-void LoadRomIntoState(State8080 *state, char *buffer, int buffer_len) {
+void LoadRomIntoState(State8080 *state, unsigned char *buffer, long buffer_len) {
     int b = 0;
     for (int i = state->pc; i < (state->pc + buffer_len); i++) {
         state->memory[i] = buffer[b];
