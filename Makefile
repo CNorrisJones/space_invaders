@@ -34,6 +34,3 @@ test: $(TEST_TARGET)
 
 valgrind: $(TARGET)
 	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) ./rom/invaders
-
-test_valgrind: $(TEST_TARGET)
-	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TEST_TARGET)
