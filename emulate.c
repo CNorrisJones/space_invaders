@@ -1,9 +1,10 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "disassembler.h"
 #include "state.h"
 #include "helper_funcs.h"
 
-int main(int argc, char* argv[]) {
+int main(__attribute__((unused)) int argc, char* argv[]) {
     long file_size = 0;
     int counter = 0;
     unsigned char *buffer = GetFileContents(argv[1], &file_size);

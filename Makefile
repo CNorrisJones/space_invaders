@@ -4,13 +4,13 @@ CFLAGS = -Wall -Wextra -g
 TARGET = emulator
 TEST_TARGET = test_runner
 
-SHARED_SRCS = disassembler.c state.c helper_funcs.c
+SHARED_SRCS = disassembler.c state.c interrupt.c helper_funcs.c
 EMULATE_SRCS = emulate.c $(SHARED_SRCS)
 TEST_SRCS = test.c $(SHARED_SRCS)
 
 EMULATE_OBJS = $(EMULATE_SRCS:.c=.o)
 TEST_OBJS = $(TEST_SRCS:.c=.o)
-ALL_OBJS = emulate.o test.o disassembler.o state.o helper_funcs.o
+ALL_OBJS = emulate.o test.o disassembler.o state.o interrupt.o helper_funcs.o
 
 all: $(TARGET)
 

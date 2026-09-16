@@ -3,6 +3,7 @@
 #include <string.h>
 #include "state.h"
 #include "disassembler.h"
+#include "interrupt.h"
 
 int is_test_cpu = 0;
 
@@ -1090,8 +1091,9 @@ void SphlOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 2
 void InOpCode(State8080 *state, uint8_t byte_2) {
-    // TODO
-    printf("%x", byte_2);
+    state->a = InterruptIn(state, byte_2);    
+    state->pc += 1;
+
     return;
 }
 
@@ -1099,8 +1101,9 @@ void InOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: None
 // Op Size: 2
 void OutOpCode(State8080 *state, uint8_t byte_2) {
-    // TODO
-    printf("%x", byte_2);
+    InterruptOut(state, byte_2);
+    state->pc += 1;
+
     return;
 }
 

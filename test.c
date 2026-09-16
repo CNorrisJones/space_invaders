@@ -1,10 +1,11 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "disassembler.h"
 #include "state.h"
 #include "helper_funcs.h"
 
-int main(int argc, char* argv[]) {
-    const char DIAGNOSTIC_FILE[] = "./rom/cpudiag.bin";
+int main() {
+    char DIAGNOSTIC_FILE[] = "./rom/cpudiag.bin";
     is_test_cpu = 1;
 
     long file_size = 0;
