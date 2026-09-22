@@ -1,12 +1,11 @@
 #include <SDL2/SDL.h>
-#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include "pixel.h"
 #include "display.h"
 
 DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
-    if (buffer_width < 0 | buffer_height < 0) {
+    if (buffer_width <= 0 || buffer_height <= 0) {
         return NULL;
     }
 
@@ -92,11 +91,86 @@ DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
     display_context->pixel_palette.white_pixel = SDL_MapRGBA(pixel_format, 255, 255, 255, 255);
     SDL_FreeFormat(pixel_format);
 
+    // Set Initial Render Colour
+    int renderer_draw_color = SDL_SetRenderDrawColor(
+        display_context->renderer,
+        0,
+        0,
+        0,
+        255
+    );
+
+    if (renderer_draw_color < 0) {
+        const char *error_msg = SDL_GetError();
+        printf("Error Occurred: %s\n", error_msg);
+
+        DisplayShutdown(display_context);
+        return NULL;
+    }
+
     return display_context;
 }
 
-int DisplayFrame(DisplayContext *display_context, const uint8_t *frame_buffer) {
+enum DisplayFrameRenderStatus DisplayFrame(DisplayContext *display_context, const uint32_t *frame_buffer) {
+    if (display_context == NULL || frame_buffer == NULL) {
+        return DISPLAY_FAILURE;
+    }
 
+    const int texture_pitch = display_context->frame_buffer_width * sizeof(uint32_t);
+
+    int update_texture = SDL_UpdateTexture(
+        display_context->texture,
+        NULL,
+        frame_buffer,
+        texture_pitch
+    );
+
+    if (update_texture < 0) {
+        const char *error_msg = SDL_GetError();
+        printf("Error Occurred: %s\n", error_msg);
+        return DISPLAY_FAILURE;
+    }
+
+    // Clear the Renderer
+    int render_clear_success = SDL_RenderClear(display_context->renderer);
+    if (render_clear_success < 0) {
+        const char *error_msg = SDL_GetError();
+        printf("Error Occurred: %s\n", error_msg);
+        return DISPLAY_FAILURE;
+    }
+
+    // Copy Texture to Renderer
+    int render_copy_success = SDL_RenderCopy(
+        display_context->renderer,
+        display_context->texture,
+        NULL,
+        NULL
+    );
+
+    if (render_copy_success < 0) {
+        const char *error_msg = SDL_GetError();
+        printf("Error Occurred: %s\n", error_msg);
+        return DISPLAY_FAILURE;
+    }
+
+    // Present Renderer
+    SDL_RenderPresent(display_context->renderer);
+    return DISPLAY_SUCCESS;
+}
+
+enum DisplayEventStatus DisplayPollEvents(void) {
+    SDL_Event event;
+    int return_value = DISPLAY_CONTINUE;
+
+    while(SDL_PollEvent(&event)) {
+        switch (event.type) {
+            case SDL_QUIT:
+                return_value = DISPLAY_QUIT;
+                break;
+        }
+    }
+
+    return return_value;
 }
 
 void DisplayShutdown(DisplayContext *display_context) {

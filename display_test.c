@@ -143,7 +143,6 @@ int main() {
 
     SDL_RenderPresent(renderer);
 
-    // TODO: Generate event loop
     int running = 1;
     SDL_Event event;
 
