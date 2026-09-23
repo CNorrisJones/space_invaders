@@ -1,8 +1,3 @@
-#include <SDL2/SDL.h>
-#include <stdio.h>
-#include <stdint.h>
-#include <stdlib.h>
-#include <stddef.h>
 #include "display.h"
 
 int main() {
@@ -46,7 +41,6 @@ int main() {
         SDL_Delay(16);
     }
 
-    printf("Cleaning Up Objects\n");
     free(frame_buffer);
     DisplayShutdown(display);
 
