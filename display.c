@@ -32,7 +32,8 @@ DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
     }
 
     display_context->window = SDL_CreateWindow(
-        "Test Window", SDL_WINDOWPOS_CENTERED,
+        "Test Window",
+        SDL_WINDOWPOS_CENTERED,
         SDL_WINDOWPOS_CENTERED,
         display_context->frame_buffer_width * WINDOW_SCALE,
         display_context->frame_buffer_height * WINDOW_SCALE,
