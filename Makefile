@@ -1,36 +1,68 @@
 # 1. Variables - Makes it easy to change compiler options later
-CC = gcc
-CFLAGS = -Wall -Wextra -g
-TARGET = emulator
-TEST_TARGET = test_runner
+CC 		 			= gcc
+CPPFLAGS 			= -I.
+CFLAGS 				= -Wall -Wextra -g
+SDL_CFLAGS  		= $(shell sdl2-config --cflags)
+SDL_LIBS			= $(shell sdl2-config --libs)
 
-SHARED_SRCS = disassembler.c state.c interrupt.c helper_funcs.c
-EMULATE_SRCS = emulate.c $(SHARED_SRCS)
-TEST_SRCS = test.c $(SHARED_SRCS)
+RUN_TARGET 			= run-emulator
+CPU_TEST_TARGET 	= test-cpu
+DISPLAY_TEST_TARGET = test-display
+VIDEO_TEST_TARGET 	= test-video
 
-EMULATE_OBJS = $(EMULATE_SRCS:.c=.o)
-TEST_OBJS = $(TEST_SRCS:.c=.o)
-ALL_OBJS = emulate.o test.o disassembler.o state.o interrupt.o helper_funcs.o
+EMULATOR_BIN		= emulator
+CPU_TEST_BIN		= test_cpu
+DISPLAY_TEST_BIN	= test_display
+VIDEO_TEST_BIN		= test_video
 
-all: $(TARGET)
+CORE_SRCS 			= disassembler.c state.c interrupt.c helper_funcs.c
+EMULATE_SRCS		= emulate.c display.c video.c $(CORE_SRCS)
+CPU_TEST_SRCS 		= test/test_cpu.c $(CORE_SRCS)
+DISPLAY_TEST_SRCS 	= test/test_display.c display.c
+VIDEO_TEST_SRCS 	= test/test_video.c video.c
 
-$(TARGET): $(EMULATE_OBJS)
-	$(CC) $(CFLAGS) -o $(TARGET) $(EMULATE_OBJS)
+EMULATE_OBJS 		= $(EMULATE_SRCS:.c=.o)
+CPU_TEST_OBJS 		= $(CPU_TEST_SRCS:.c=.o)
+DISPLAY_TEST_OBJS 	= $(DISPLAY_TEST_SRCS:.c=.o)
+VIDEO_TEST_OBJS 	= $(VIDEO_TEST_SRCS:.c=.o)
+SDL_OBJS			= display.o test/test_display.o
+ALL_OBJS 			= emulate.o display.o video.o test/test_display.o test/test_video.o test/test_cpu.o disassembler.o state.o interrupt.o helper_funcs.o
 
-$(TEST_TARGET): $(TEST_OBJS)
-	$(CC) $(CFLAGS) -o $(TEST_TARGET) $(TEST_OBJS)
+.PHONY: all run-emulator test-cpu test-display test-video clean valgrind
 
-%.o: %.c
-	$(CC) $(CFLAGS) -c $< -o $@
+all: $(EMULATOR_BIN)
+
+$(RUN_TARGET): $(EMULATOR_BIN)
+	./$(EMULATOR_BIN) ./rom/invaders
+
+$(CPU_TEST_TARGET): $(CPU_TEST_BIN)
+	./$(CPU_TEST_BIN)
+
+$(DISPLAY_TEST_TARGET): $(DISPLAY_TEST_BIN)
+	./$(DISPLAY_TEST_BIN)
+
+$(VIDEO_TEST_TARGET): $(VIDEO_TEST_BIN)
+	./$(VIDEO_TEST_BIN)
 
 clean:
-	rm -f $(TARGET) $(TEST_TARGET) $(ALL_OBJS)
+	rm -f $(EMULATOR_BIN) $(CPU_TEST_BIN) $(DISPLAY_TEST_BIN) $(VIDEO_TEST_BIN) $(ALL_OBJS)
 
-run: $(TARGET)
-	./$(TARGET) ./rom/invaders
+valgrind: $(EMULATOR_BIN)
+	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(EMULATOR_BIN) ./rom/invaders
 
-test: $(TEST_TARGET)
-	./$(TEST_TARGET)
+$(EMULATOR_BIN): $(EMULATE_OBJS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(EMULATOR_BIN) $(EMULATE_OBJS) $(SDL_LIBS)
 
-valgrind: $(TARGET)
-	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(TARGET) ./rom/invaders
+$(CPU_TEST_BIN): $(CPU_TEST_OBJS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(CPU_TEST_BIN) $(CPU_TEST_OBJS)
+
+$(DISPLAY_TEST_BIN): $(DISPLAY_TEST_OBJS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(DISPLAY_TEST_BIN) $(DISPLAY_TEST_OBJS) $(SDL_LIBS)
+
+$(VIDEO_TEST_BIN): $(VIDEO_TEST_OBJS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $(VIDEO_TEST_BIN) $(VIDEO_TEST_OBJS)
+
+$(SDL_OBJS): CPPFLAGS += $(SDL_CFLAGS)
+
+%.o: %.c
+	$(CC) $(CPPFLAGS) $(CFLAGS) -c $< -o $@
