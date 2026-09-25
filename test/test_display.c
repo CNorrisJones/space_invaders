@@ -1,23 +1,24 @@
+#include <stdlib.h>
 #include "display.h"
 
-int main() {
+int main(void) {
     DisplayContext *display = DisplayInit(256, 224);
     if (display == NULL) {
         DisplayShutdown(display);
-        exit(1);
+        exit(DISPLAY_FAILURE);
     }
 
     uint32_t *frame_buffer = malloc(256 * 224 * sizeof(uint32_t));
 
     if (frame_buffer == NULL) {
         DisplayShutdown(display);
-        exit(1);
+        exit(DISPLAY_FAILURE);
     }
     
     // Set Each element in frame_buffer to black pixel
     for (int y = 0; y < 224; y++) {
         for (int x = 0; x < 256; x++) {
-            if ((x == 0) | (y == 0) | (x == 1) | (y == 1)) {
+            if ((x == 0) || (y == 0) || (x == 1) || (y == 1)) {
                 frame_buffer[y * 256 + x] = display->pixel_palette.white_pixel;
             } else {
                 frame_buffer[y * 256 + x] = display->pixel_palette.black_pixel;
@@ -34,7 +35,7 @@ int main() {
         if (frame_status != 0) {
             free(frame_buffer);
             DisplayShutdown(display);
-            exit(1);
+            exit(DISPLAY_FAILURE);
         }
 
         // Optionally Delay Briefly
@@ -44,5 +45,5 @@ int main() {
     free(frame_buffer);
     DisplayShutdown(display);
 
-    return 0;
+    return DISPLAY_SUCCESS;
 }

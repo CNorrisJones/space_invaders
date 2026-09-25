@@ -20,6 +20,7 @@ DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
     display_context->texture = NULL;
     display_context->frame_buffer_height = buffer_height;
     display_context->frame_buffer_width = buffer_width;
+    display_context->window_visible = WINDOW_HIDDEN;
 
     int vid_failure = SDL_Init(SDL_INIT_VIDEO);
 
@@ -37,7 +38,7 @@ DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
         SDL_WINDOWPOS_CENTERED,
         display_context->frame_buffer_width * WINDOW_SCALE,
         display_context->frame_buffer_height * WINDOW_SCALE,
-        SDL_WINDOW_SHOWN
+        SDL_WINDOW_HIDDEN
     );
 
     if (display_context->window == NULL) {
@@ -152,6 +153,11 @@ enum DisplayFrameRenderStatus DisplayFrame(DisplayContext *display_context, cons
         const char *error_msg = SDL_GetError();
         printf("Error Occurred: %s\n", error_msg);
         return DISPLAY_FAILURE;
+    }
+
+    if (display_context->window_visible == WINDOW_HIDDEN) {
+        SDL_ShowWindow(display_context->window);
+        display_context->window_visible = WINDOW_NOT_HIDDEN;
     }
 
     // Present Renderer

@@ -15,6 +15,11 @@ enum DisplayFrameRenderStatus {
     DISPLAY_SUCCESS = 0
 };
 
+enum WindowDisplayBools {
+    WINDOW_HIDDEN = 0,
+    WINDOW_NOT_HIDDEN = 1
+};
+
 typedef struct DisplayContext {
     SDL_Window *window;
     SDL_Renderer *renderer;
@@ -22,6 +27,7 @@ typedef struct DisplayContext {
     PixelPalette pixel_palette;
     int frame_buffer_width;
     int frame_buffer_height; 
+    int window_visible;
 } DisplayContext;
 
 DisplayContext *DisplayInit(int buffer_width, int buffer_height);
