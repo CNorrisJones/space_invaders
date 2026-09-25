@@ -17,7 +17,7 @@ enum DisplayFrameRenderStatus {
 
 enum WindowDisplayBools {
     WINDOW_HIDDEN = 0,
-    WINDOW_NOT_HIDDEN = 1
+    WINDOW_VISIBLE = 1
 };
 
 typedef struct DisplayContext {

@@ -157,7 +157,7 @@ enum DisplayFrameRenderStatus DisplayFrame(DisplayContext *display_context, cons
 
     if (display_context->window_visible == WINDOW_HIDDEN) {
         SDL_ShowWindow(display_context->window);
-        display_context->window_visible = WINDOW_NOT_HIDDEN;
+        display_context->window_visible = WINDOW_VISIBLE;
     }
 
     // Present Renderer

@@ -4,7 +4,6 @@
 int main(void) {
     DisplayContext *display = DisplayInit(256, 224);
     if (display == NULL) {
-        DisplayShutdown(display);
         exit(DISPLAY_FAILURE);
     }
 
