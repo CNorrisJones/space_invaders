@@ -6,7 +6,7 @@
 int main(void) {
     printf("Run!\n");
 
-    DisplayContext *test_display = DisplayInit(VIDEO_WIDTH, VIDEO_HEIGHT);
+    DisplayContext *test_display = DisplayInit(VIDEO_OUTPUT_WIDTH, VIDEO_OUTPUT_HEIGHT);
     if (test_display == NULL) {
         return VIDEO_CONVERT_FAILURE;
     }
@@ -19,7 +19,7 @@ int main(void) {
 
     video_ram[875] = 0xD1;
 
-    uint32_t *frame_buffer = calloc(VIDEO_WIDTH * VIDEO_HEIGHT, sizeof(*frame_buffer));
+    uint32_t *frame_buffer = calloc(VIDEO_OUTPUT_WIDTH * VIDEO_OUTPUT_HEIGHT, sizeof(*frame_buffer));
     if (frame_buffer == NULL) {
         DisplayShutdown(test_display);
         free(video_ram);

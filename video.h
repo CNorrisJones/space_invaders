@@ -12,8 +12,10 @@ enum VideoConvertStatus {
 enum VideoConstants {
     VIDEO_RAM_START = 0x2400,
     VIDEO_RAM_SIZE = 0x1C00,
-    VIDEO_WIDTH = 256,
-    VIDEO_HEIGHT = 224
+    VIDEO_INPUT_WIDTH = 256,
+    VIDEO_INPUT_HEIGHT = 224,
+    VIDEO_OUTPUT_WIDTH = 224,
+    VIDEO_OUTPUT_HEIGHT = 256
 };
 
 enum VideoConvertStatus ConvertVideoRamToBuffer(const uint8_t *video_ram, uint32_t *frame_buffer, const PixelPalette *pixel_palette);

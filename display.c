@@ -201,3 +201,5 @@ void DisplayShutdown(DisplayContext *display_context) {
 
     free(display_context);
 }
+
+// TODO Create Delay Function that calls SDL_Delay
