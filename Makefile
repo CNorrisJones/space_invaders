@@ -24,7 +24,7 @@ EMULATE_OBJS 		= $(EMULATE_SRCS:.c=.o)
 CPU_TEST_OBJS 		= $(CPU_TEST_SRCS:.c=.o)
 DISPLAY_TEST_OBJS 	= $(DISPLAY_TEST_SRCS:.c=.o)
 VIDEO_TEST_OBJS 	= $(VIDEO_TEST_SRCS:.c=.o)
-SDL_OBJS			= display.o test/test_display.o
+SDL_OBJS			= display.o test/test_display.o test/test_video.o
 ALL_OBJS			:= $(sort \
 	$(EMULATE_OBJS) \
 	$(CPU_TEST_OBJS) \
