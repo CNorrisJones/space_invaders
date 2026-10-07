@@ -17,7 +17,7 @@ VIDEO_TEST_BIN		= test_video
 IOBUS_TEST_BIN		= test_iobus
 
 CORE_SRCS 			= disassembler.c state.c interrupt.c helper_funcs.c
-EMULATE_SRCS		= emulate.c display.c video.c $(CORE_SRCS)
+EMULATE_SRCS		= emulate.c iobus.c display.c video.c $(CORE_SRCS)
 CPU_TEST_SRCS 		= test/test_cpu.c $(CORE_SRCS)
 DISPLAY_TEST_SRCS 	= test/test_display.c display.c
 VIDEO_TEST_SRCS 	= test/test_video.c video.c display.c

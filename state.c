@@ -1953,6 +1953,9 @@ State8080 *CreateTestState(uint16_t pc_init) {
     // 6. Interrupt System Control
     state->int_enable = 0;
 
+    // 7. Set up a NULL IoBus Reference (IoBus being the object that liases between CPU and Space Invaders Hardware)
+    state->io_bus = NULL;
+
     return state;
 }
 
