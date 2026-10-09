@@ -14,6 +14,7 @@ int main(__attribute__((unused)) int argc, char* argv[]) {
 
     State8080 *demo_state = CreateTestState(MEM_START);
     LoadRomIntoState(demo_state, buffer, file_size);
+    int emu_return_code;
 
     while(1) {
         if (counter == 37410) {
@@ -21,7 +22,13 @@ int main(__attribute__((unused)) int argc, char* argv[]) {
         }
 
         Disassemble8080Code(demo_state->memory, demo_state->pc);
-        Emulate8080Op(demo_state);
+        emu_return_code = Emulate8080Op(demo_state);
+        if (emu_return_code == -1) {
+            printf("CPU STATE FAILURE RETURNED\n");
+            FreeState(demo_state);
+            free(buffer);
+            return 1;
+        }
 
         counter += 1;
         printf("\tCY=%d,P=%d,S=%d,Z=%d,AC=%d\n", demo_state->cc.cy, demo_state->cc.p, demo_state->cc.s, demo_state->cc.z, demo_state->cc.ac);

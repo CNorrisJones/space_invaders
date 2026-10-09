@@ -112,6 +112,7 @@ int main(void) {
         return 1;
     }
 
+    printf("All Tests Successful\n");
     IoBusShutdown(test_bus);
     free(test_hardware);
 

@@ -1,9 +1,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stddef.h>
+
 #include "state.h"
 #include "disassembler.h"
-#include "interrupt.h"
 
 int is_test_cpu = 0;
 
@@ -1090,21 +1091,27 @@ void SphlOpCode(State8080 *state) {
 // IN: special
 // Flags: None
 // Op Size: 2
-void InOpCode(State8080 *state, uint8_t byte_2) {
-    state->a = InterruptIn(state, byte_2);    
+int InOpCode(State8080 *state, uint8_t byte_2) {
+    if (state->io_bus == NULL) {
+        return -1;
+    }
+    state->a = state->io_bus->read(state->io_bus->hardware_context, byte_2);    
     state->pc += 1;
 
-    return;
+    return 0;
 }
 
 // OUT: special
 // Flags: None
 // Op Size: 2
-void OutOpCode(State8080 *state, uint8_t byte_2) {
-    InterruptOut(state, byte_2);
+int OutOpCode(State8080 *state, uint8_t byte_2) {
+    if (state->io_bus == NULL) {
+        return -1;
+    }
+    state->io_bus->write(state->io_bus->hardware_context, byte_2, state->a);
     state->pc += 1;
 
-    return;
+    return 0;
 }
 
 // EI: Enable Interrupt Flag
@@ -1138,6 +1145,7 @@ void NopOpCode() {
 }
 
 int Emulate8080Op(State8080* state) {
+    int cycles = 0;
     unsigned char *opcode = &state->memory[state->pc];
 
     switch(*opcode) {
@@ -1775,7 +1783,7 @@ int Emulate8080Op(State8080* state) {
             JncOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xD3: // OUT D8
-            OutOpCode(state, opcode[1]);
+            cycles = OutOpCode(state, opcode[1]);
             break;
         case 0xD4: // CNC adr
             CncOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
@@ -1799,7 +1807,7 @@ int Emulate8080Op(State8080* state) {
             JcOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
             break;
         case 0xDB: // IN D8
-            InOpCode(state, opcode[1]);
+            cycles = InOpCode(state, opcode[1]);
             break;
         case 0xDC: // CC adr
             CcOpCode(state, GetMemoryAdr(opcode[2], opcode[1]));
@@ -1910,9 +1918,13 @@ int Emulate8080Op(State8080* state) {
             RstOpCode(state, 0x38);
             break;
     }
+    if (cycles == -1) {
+        return cycles;
+    }
+
     state->pc+=1;  //for the opcode
 
-    return 0;
+    return cycles;
 }
 
 State8080 *CreateTestState(uint16_t pc_init) {
