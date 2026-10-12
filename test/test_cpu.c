@@ -12,11 +12,11 @@ int main() {
     unsigned char *buffer = GetFileContents(DIAGNOSTIC_FILE, &file_size);
     const uint16_t MEM_START = 0x100;
 
-    Cpu8080 *demo_state = CreateTestState(MEM_START);
-    LoadRomIntoState(demo_state, buffer, file_size);
+    Cpu8080 *demo_cpu = CreateTestCpu(MEM_START);
+    LoadRomIntoCpu(demo_cpu, buffer, file_size);
 
     while(1) {
-        Emulate8080Op(demo_state);
+        Emulate8080Op(demo_cpu);
     }
 
     return 0;
