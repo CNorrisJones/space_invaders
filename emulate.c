@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "disassembler.h"
-#include "state.h"
+#include "cpu.h"
 #include "helper_funcs.h"
 
 int main(__attribute__((unused)) int argc, char* argv[]) {
@@ -12,7 +12,7 @@ int main(__attribute__((unused)) int argc, char* argv[]) {
 
     TestDisassembler(file_size, buffer);
 
-    State8080 *demo_state = CreateTestState(MEM_START);
+    Cpu8080 *demo_state = CreateTestState(MEM_START);
     LoadRomIntoState(demo_state, buffer, file_size);
     int emu_return_code;
 

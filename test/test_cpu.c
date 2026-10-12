@@ -1,7 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "disassembler.h"
-#include "state.h"
+#include "cpu.h"
 #include "helper_funcs.h"
 
 int main() {
@@ -12,7 +12,7 @@ int main() {
     unsigned char *buffer = GetFileContents(DIAGNOSTIC_FILE, &file_size);
     const uint16_t MEM_START = 0x100;
 
-    State8080 *demo_state = CreateTestState(MEM_START);
+    Cpu8080 *demo_state = CreateTestState(MEM_START);
     LoadRomIntoState(demo_state, buffer, file_size);
 
     while(1) {

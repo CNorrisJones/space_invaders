@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include "iobus.h"
-#include "state.h"
+#include "cpu.h"
 
 typedef struct TestHardware {
     uint8_t return_value;
@@ -27,7 +27,7 @@ static void WriteTest(void *context, uint8_t port, uint8_t value) {
 }
 
 int main(void) {
-    State8080 *demo_state = CreateTestState(0x00);
+    Cpu8080 *demo_state = CreateTestState(0x00);
     if (demo_state == NULL) {
         printf("Demo State Creation Failure\n");
         return 1;

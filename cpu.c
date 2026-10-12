@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stddef.h>
 
-#include "state.h"
+#include "cpu.h"
 #include "disassembler.h"
 
 int is_test_cpu = 0;
@@ -25,7 +25,7 @@ uint16_t GetMemoryAdr(uint8_t high, uint8_t low) {
     return adr;
 }
 
-void HandleZeroSignParityFlags(State8080 *state, uint16_t value) {
+void HandleZeroSignParityFlags(Cpu8080 *state, uint16_t value) {
     const uint8_t UPPER_BIT_MASK = 0xff;
     const uint8_t SIGN_BIT_MASK = 0x80;
 
@@ -61,7 +61,7 @@ int MovMemOpCode(uint8_t *dest_reg, uint8_t *send_reg) {
 // Flags: None
 // Op Size: 2
 // Cycles: 7
-int MviOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
+int MviOpCode(Cpu8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
     *dest_reg = byte_2;
     state->pc += 1;
     return 7;
@@ -71,7 +71,7 @@ int MviOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
 // Flags: None
 // Op Size: 2
 // Cycles: 10
-int MviMemOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
+int MviMemOpCode(Cpu8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
     *dest_reg = byte_2;
     state->pc += 1;
     return 10;
@@ -81,7 +81,7 @@ int MviMemOpCode(State8080 *state, uint8_t *dest_reg, uint8_t byte_2) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int LxiOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byte_2, uint8_t byte_3) {
+int LxiOpCode(Cpu8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byte_2, uint8_t byte_3) {
     *high_reg = byte_3;
     *low_reg = byte_2;
     
@@ -93,7 +93,7 @@ int LxiOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg, uint8_t byt
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
+int LxiStackPointerOpCode(Cpu8080 *state, uint8_t byte_2, uint8_t byte_3) {
     uint16_t adr = GetMemoryAdr(byte_3, byte_2);
     state->sp = adr;
     state->pc += 2;
@@ -104,7 +104,7 @@ int LxiStackPointerOpCode(State8080 *state, uint8_t byte_2, uint8_t byte_3) {
 // Flags: None
 // Op Size: 3
 // Cycles: 13
-int LdaOpCode(State8080 *state, uint16_t adr) {
+int LdaOpCode(Cpu8080 *state, uint16_t adr) {
     state->a = state->memory[adr];
 
     state->pc += 2;
@@ -115,7 +115,7 @@ int LdaOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 13
-int StaOpCode(State8080 *state, uint16_t adr) {
+int StaOpCode(Cpu8080 *state, uint16_t adr) {
     state->memory[adr] = state->a;
 
     state->pc += 2;
@@ -126,7 +126,7 @@ int StaOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 16
-int LhldOpCode(State8080 *state, uint16_t adr) {
+int LhldOpCode(Cpu8080 *state, uint16_t adr) {
     state->l = state->memory[adr];
     state->h = state->memory[adr + 1];
 
@@ -138,7 +138,7 @@ int LhldOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 16
-int ShldOpCode(State8080 *state, uint16_t adr) {
+int ShldOpCode(Cpu8080 *state, uint16_t adr) {
     state->memory[adr] = state->l;
     state->memory[adr + 1] = state->h;
 
@@ -150,7 +150,7 @@ int ShldOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 1
 // Cycles: 7
-int LdaxOpCode(State8080 *state, uint16_t reg_pair) {
+int LdaxOpCode(Cpu8080 *state, uint16_t reg_pair) {
     state->a = state->memory[reg_pair];
     return 7;
 }
@@ -159,7 +159,7 @@ int LdaxOpCode(State8080 *state, uint16_t reg_pair) {
 // Flags: None
 // Op Size: 1
 // Cycles: 7
-int StaxOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
+int StaxOpCode(Cpu8080 *state, uint8_t high_reg, uint8_t low_reg) {
     uint16_t adr = GetMemoryAdr(high_reg, low_reg);
 
     state->memory[adr] = state->a;
@@ -170,7 +170,7 @@ int StaxOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
 // Flags: None
 // Op Size: 1
 // Cycles: 4
-int XchgOpCode(State8080 *state) {
+int XchgOpCode(Cpu8080 *state) {
     uint8_t temp_d_reg = state->d;
     uint8_t temp_e_reg = state->e;
     uint8_t temp_h_reg = state->h;
@@ -193,7 +193,7 @@ int XchgOpCode(State8080 *state) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int AddOpCode(State8080 *state, uint8_t *reg) { 
+int AddOpCode(Cpu8080 *state, uint8_t *reg) { 
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a + (uint16_t) *reg;    
 
@@ -209,7 +209,7 @@ int AddOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int AddMemOpCode(State8080 *state, uint8_t *reg) { 
+int AddMemOpCode(Cpu8080 *state, uint8_t *reg) { 
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a + (uint16_t) *reg;    
 
@@ -225,7 +225,7 @@ int AddMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int AdiOpCode(State8080 *state, uint8_t byte_2) {
+int AdiOpCode(Cpu8080 *state, uint8_t byte_2) {
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a + (uint16_t) byte_2;    
 
@@ -242,7 +242,7 @@ int AdiOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int AdcOpCode(State8080 *state, uint8_t *reg) {
+int AdcOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -260,7 +260,7 @@ int AdcOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int AdcMemOpCode(State8080 *state, uint8_t *reg) {
+int AdcMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -271,14 +271,14 @@ int AdcMemOpCode(State8080 *state, uint8_t *reg) {
     state->cc.ac = (((state->a & 0x0F) + (*reg & 0x0F) + carry_flag) > 0x0F);
 
     state->a = (uint8_t)(answer & 0xff);
-    return 4;
+    return 7;
 }
 
 // ACI: A <- A + data + CY
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int AciOpCode(State8080 *state, uint8_t byte_2) {
+int AciOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -297,7 +297,7 @@ int AciOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int SubOpCode(State8080 *state, uint8_t *reg) {
+int SubOpCode(Cpu8080 *state, uint8_t *reg) {
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a - (uint16_t) *reg;
 
@@ -313,7 +313,7 @@ int SubOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int SubMemOpCode(State8080 *state, uint8_t *reg) {
+int SubMemOpCode(Cpu8080 *state, uint8_t *reg) {
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a - (uint16_t) *reg;
 
@@ -329,7 +329,7 @@ int SubMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int SuiOpCode(State8080 *state, uint8_t byte_2) {
+int SuiOpCode(Cpu8080 *state, uint8_t byte_2) {
     // Cast to 16-bit to more easily check for a carry
     uint16_t answer = (uint16_t) state->a - (uint16_t) byte_2;
 
@@ -346,7 +346,7 @@ int SuiOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int SbbOpCode(State8080 *state, uint8_t *reg) {
+int SbbOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -364,7 +364,7 @@ int SbbOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int SbbMemOpCode(State8080 *state, uint8_t *reg) {
+int SbbMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -382,7 +382,7 @@ int SbbMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int SbiOpCode(State8080 *state, uint8_t byte_2) {
+int SbiOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t carry_flag = state->cc.cy;
 
     // Cast to 16-bit to more easily check for a carry
@@ -401,7 +401,7 @@ int SbiOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, AC
 // Op Size: 1
 // Cycles: 5
-int InrOpCode(State8080 *state, uint8_t *reg) {
+int InrOpCode(Cpu8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg + 1;
 
     HandleZeroSignParityFlags(state, answer);
@@ -415,7 +415,7 @@ int InrOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, AC
 // Op Size: 1
 // Cycles: 10
-int InrMemOpCode(State8080 *state, uint8_t *reg) {
+int InrMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg + 1;
 
     HandleZeroSignParityFlags(state, answer);
@@ -429,7 +429,7 @@ int InrMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, AC
 // Op Size: 1
 // Cycles: 5
-int DcrOpCode(State8080 *state, uint8_t *reg) {
+int DcrOpCode(Cpu8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg - 1;
 
     HandleZeroSignParityFlags(state, answer);
@@ -443,7 +443,7 @@ int DcrOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, AC
 // Op Size: 1
 // Cycles: 10
-int DcrMemOpCode(State8080 *state, uint8_t *reg) {
+int DcrMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint16_t answer = (uint16_t) *reg - 1;
 
     HandleZeroSignParityFlags(state, answer);
@@ -470,7 +470,7 @@ int InxOpCode(uint8_t *high_reg, uint8_t *low_reg) {
 // Flags: None
 // Op Size: 1
 // Cycles: 5
-int InxStackPointerOpCode(State8080 *state) {
+int InxStackPointerOpCode(Cpu8080 *state) {
     state->sp += 1;
     return 5;
 }
@@ -492,7 +492,7 @@ int DcxOpCode(uint8_t *high_reg, uint8_t *low_reg) {
 // Flags: None
 // Op Size: 1
 // Cycles: 5
-int DcxStackPointerOpCode(State8080 *state) {
+int DcxStackPointerOpCode(Cpu8080 *state) {
     state->sp -= 1;
     return 5;
 }
@@ -501,7 +501,7 @@ int DcxStackPointerOpCode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 10
-int DadOpCode(State8080 *state, uint16_t reg_pair) {
+int DadOpCode(Cpu8080 *state, uint16_t reg_pair) {
     uint32_t hl_adr = (uint32_t) GetMemoryAdr(state->h, state->l);
 
     hl_adr = hl_adr + (uint32_t) reg_pair;
@@ -517,7 +517,7 @@ int DadOpCode(State8080 *state, uint16_t reg_pair) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int DaaOpCode(State8080 *state) {
+int DaaOpCode(Cpu8080 *state) {
     // If 4 least bits are > 9, or AC flag == 1, add 6 to state->a
     // If 4 greatest bits are now > 9, or CY flag == 1, add 6 to most significant 4 bits
     // If CY flag was 1, it stays 1, if it was 0, then it flips to 1 if we go over
@@ -553,7 +553,7 @@ int DaaOpCode(State8080 *state) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int AnaOpCode(State8080 *state, uint8_t *reg) {
+int AnaOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a & *reg;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -568,7 +568,7 @@ int AnaOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int AnaMemOpCode(State8080 *state, uint8_t *reg) {
+int AnaMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a & *reg;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -583,7 +583,7 @@ int AnaMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int AniOpCode(State8080 *state, uint8_t byte_2) {
+int AniOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t answer = state->a & byte_2;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -599,7 +599,7 @@ int AniOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int XraOpCode(State8080 *state, uint8_t *reg) {
+int XraOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a ^ *reg;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -614,7 +614,7 @@ int XraOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int XraMemOpCode(State8080 *state, uint8_t *reg) {
+int XraMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a ^ *reg;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -629,7 +629,7 @@ int XraMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int XriOpCode(State8080 *state, uint8_t byte_2) {
+int XriOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t answer = state->a ^ byte_2;    
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -645,7 +645,7 @@ int XriOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int OraOpCode(State8080 *state, uint8_t *reg) {
+int OraOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a | *reg;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -660,7 +660,7 @@ int OraOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int OraMemOpCode(State8080 *state, uint8_t *reg) {
+int OraMemOpCode(Cpu8080 *state, uint8_t *reg) {
     uint8_t answer = state->a | *reg;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -675,7 +675,7 @@ int OraMemOpCode(State8080 *state, uint8_t *reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int OriOpCode(State8080 *state, uint8_t byte_2) {
+int OriOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t answer = state->a | byte_2;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -691,7 +691,7 @@ int OriOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 4
-int CmpOpCode(State8080 *state, uint8_t reg) {
+int CmpOpCode(Cpu8080 *state, uint8_t reg) {
     uint8_t answer = state->a - reg;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -705,7 +705,7 @@ int CmpOpCode(State8080 *state, uint8_t reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 1
 // Cycles: 7
-int CmpMemOpCode(State8080 *state, uint8_t reg) {
+int CmpMemOpCode(Cpu8080 *state, uint8_t reg) {
     uint8_t answer = state->a - reg;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -719,7 +719,7 @@ int CmpMemOpCode(State8080 *state, uint8_t reg) {
 // Flags: Z, S, P, CY, AC
 // Op Size: 2
 // Cycles: 7
-int CpiOpCode(State8080 *state, uint8_t byte_2) {
+int CpiOpCode(Cpu8080 *state, uint8_t byte_2) {
     uint8_t answer = state->a - byte_2;
 
     HandleZeroSignParityFlags(state, (uint16_t) answer);
@@ -734,7 +734,7 @@ int CpiOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int RlcOpCode(State8080 *state) {
+int RlcOpCode(Cpu8080 *state) {
     uint8_t value = state->a;
     uint8_t bit_seven_value = value >> 7;
 
@@ -750,7 +750,7 @@ int RlcOpCode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int RrcOpCode(State8080 *state) {
+int RrcOpCode(Cpu8080 *state) {
     uint8_t value = state->a;
     uint8_t bit_zero_value = value & 0x1;
 
@@ -766,7 +766,7 @@ int RrcOpCode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int RalOpcode(State8080 *state) {
+int RalOpcode(Cpu8080 *state) {
     uint8_t value = state->a;
     uint8_t bit_seven_value = value >> 7;
 
@@ -782,7 +782,7 @@ int RalOpcode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int RarOpCode(State8080 *state) {
+int RarOpCode(Cpu8080 *state) {
     uint8_t value = state->a;
     uint8_t bit_zero_value = value & 0x1;
 
@@ -798,7 +798,7 @@ int RarOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 4
-int CmaOpCode(State8080 *state) {
+int CmaOpCode(Cpu8080 *state) {
     state->a = ~state->a;
     return 4;
 }
@@ -807,7 +807,7 @@ int CmaOpCode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int CmcOpCode(State8080 *state) {
+int CmcOpCode(Cpu8080 *state) {
     state->cc.cy = !state->cc.cy;
     return 4;
 }
@@ -816,7 +816,7 @@ int CmcOpCode(State8080 *state) {
 // Flags: CY
 // Op Size: 1
 // Cycles: 4
-int StcOpCode(State8080 *state) {
+int StcOpCode(Cpu8080 *state) {
     state->cc.cy = 1;
     return 4;
 }
@@ -829,7 +829,7 @@ int StcOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JmpOpCode(State8080 *state, uint16_t adr) {
+int JmpOpCode(Cpu8080 *state, uint16_t adr) {
     state->pc = adr - 1;
     return 10;
 }
@@ -838,7 +838,7 @@ int JmpOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JnzOpCode(State8080 *state, uint16_t adr) {
+int JnzOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.z) {
         state->pc = adr - 1;
     } else {
@@ -852,7 +852,7 @@ int JnzOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JzOpCode(State8080 *state, uint16_t adr) {
+int JzOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.z) {
         state->pc = adr - 1;
     } else {
@@ -866,7 +866,7 @@ int JzOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JncOpCode(State8080 *state, uint16_t adr) {
+int JncOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.cy) {
         state->pc = adr - 1;
     } else {
@@ -880,7 +880,7 @@ int JncOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JcOpCode(State8080 *state, uint16_t adr) {
+int JcOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.cy) {
         state->pc = adr - 1;
     } else {
@@ -894,7 +894,7 @@ int JcOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JpoOpCode(State8080 *state, uint16_t adr) {
+int JpoOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.p) {
         state->pc = adr - 1;
     } else {
@@ -908,7 +908,7 @@ int JpoOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JpeOpCode(State8080 *state, uint16_t adr) {
+int JpeOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.p) {
         state->pc = adr - 1;
     } else {
@@ -922,7 +922,7 @@ int JpeOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JpOpCode(State8080 *state, uint16_t adr) {
+int JpOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.s) {
         state->pc = adr - 1;
     } else {
@@ -936,7 +936,7 @@ int JpOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 10
-int JmOpCode(State8080 *state, uint16_t adr) {
+int JmOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.s) {
         state->pc = adr - 1;
     } else {
@@ -951,7 +951,7 @@ int JmOpCode(State8080 *state, uint16_t adr) {
 // Op Size: 3
 // Cycles: 17
 // NOTE: Includes Debug Test check is the TEST_CPU ifdef is set, used with the diagnostic cpudiag.bin file
-int CallOpCode(State8080 *state, uint16_t adr) {
+int CallOpCode(Cpu8080 *state, uint16_t adr) {
     if (is_test_cpu) {
         if (0x0005 ==  adr) {
             if (state->c == 9) {
@@ -992,7 +992,7 @@ int CallOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CnzOpCode(State8080 *state, uint16_t adr) {
+int CnzOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.z) {
         return CallOpCode(state, adr);
     } else {
@@ -1005,7 +1005,7 @@ int CnzOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CzOpCode(State8080 *state, uint16_t adr) {
+int CzOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.z) {
         return CallOpCode(state, adr);
     } else {
@@ -1018,7 +1018,7 @@ int CzOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CncOpCode(State8080 *state, uint16_t adr) {
+int CncOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.cy) {
         return CallOpCode(state, adr);
     } else {
@@ -1031,7 +1031,7 @@ int CncOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CcOpCode(State8080 *state, uint16_t adr) {
+int CcOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.cy) {
         return CallOpCode(state, adr);
     } else {
@@ -1044,7 +1044,7 @@ int CcOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CpoOpCode(State8080 *state, uint16_t adr) {
+int CpoOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.p) {
         return CallOpCode(state, adr);
     } else {
@@ -1057,7 +1057,7 @@ int CpoOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CpeOpCode(State8080 *state, uint16_t adr) {
+int CpeOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.p) {
         return CallOpCode(state, adr);
     } else {
@@ -1070,7 +1070,7 @@ int CpeOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CpOpCode(State8080 *state, uint16_t adr) {
+int CpOpCode(Cpu8080 *state, uint16_t adr) {
     if (!state->cc.s) {
         return CallOpCode(state, adr);
     } else {
@@ -1083,7 +1083,7 @@ int CpOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 3
 // Cycles: 17 on Call, 11 on Not Call
-int CmOpCode(State8080 *state, uint16_t adr) {
+int CmOpCode(Cpu8080 *state, uint16_t adr) {
     if (state->cc.s) {
         return CallOpCode(state, adr);
     } else {
@@ -1096,7 +1096,7 @@ int CmOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 1
 // Cycles: 10
-int RetOpCode(State8080 *state) {
+int RetOpCode(Cpu8080 *state) {
     uint8_t pc_low = state->memory[state->sp];
     uint8_t pc_high = state->memory[state->sp + 1];
     uint16_t new_pc_adr = GetMemoryAdr(pc_high, pc_low);
@@ -1110,7 +1110,7 @@ int RetOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RnzOpCode(State8080 *state) {
+int RnzOpCode(Cpu8080 *state) {
     if (!state->cc.z) {
         return RetOpCode(state) + 1;
     } else {
@@ -1122,7 +1122,7 @@ int RnzOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RzOpCode(State8080 *state) {
+int RzOpCode(Cpu8080 *state) {
     if (state->cc.z) {
         return RetOpCode(state) + 1;
     } else {
@@ -1134,7 +1134,7 @@ int RzOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RncOpCode(State8080 *state) {
+int RncOpCode(Cpu8080 *state) {
     if (!state->cc.cy) {
         return RetOpCode(state) + 1;
     } else {
@@ -1146,7 +1146,7 @@ int RncOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RcOpCode(State8080 *state) {
+int RcOpCode(Cpu8080 *state) {
     if (state->cc.cy) {
         return RetOpCode(state) + 1;
     } else {
@@ -1158,7 +1158,7 @@ int RcOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RpoOpCode(State8080 *state) {
+int RpoOpCode(Cpu8080 *state) {
     if (!state->cc.p) {
         return RetOpCode(state) + 1;
     } else {
@@ -1170,7 +1170,7 @@ int RpoOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RpeOpCode(State8080 *state) {
+int RpeOpCode(Cpu8080 *state) {
     if (state->cc.p) {
         return RetOpCode(state) + 1;
     } else {
@@ -1182,7 +1182,7 @@ int RpeOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RpOpCode(State8080 *state) {
+int RpOpCode(Cpu8080 *state) {
     if (!state->cc.s) {
         return RetOpCode(state) + 1;
     } else {
@@ -1194,7 +1194,7 @@ int RpOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11 on Return, 5 on Not Return
-int RmOpCode(State8080 *state) {
+int RmOpCode(Cpu8080 *state) {
     if (state->cc.s) {
         return RetOpCode(state) + 1;
     } else {
@@ -1206,8 +1206,8 @@ int RmOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11
-int RstOpCode(State8080 *state, uint16_t adr) {
-    uint16_t ret_adr = state->pc;
+int RstOpCode(Cpu8080 *state, uint16_t adr) {
+    uint16_t ret_adr = state->pc + 1;
 
     uint8_t pc_high = (uint8_t) ((ret_adr >> 8) & 0xFF);
     uint8_t pc_low = (uint8_t) (ret_adr & 0xFF);
@@ -1225,7 +1225,7 @@ int RstOpCode(State8080 *state, uint16_t adr) {
 // Flags: None
 // Op Size: 1
 // Cycles: 5
-int PchlOpCode(State8080 *state) {
+int PchlOpCode(Cpu8080 *state) {
     uint16_t new_pc = GetMemoryAdr(state->h, state->l);
     state->pc = new_pc - 1;
 
@@ -1240,7 +1240,7 @@ int PchlOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11
-int PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
+int PushOpCode(Cpu8080 *state, uint8_t high_reg, uint8_t low_reg) {
     uint8_t *high_reg_sink = &state->memory[state->sp-1];
     uint8_t *low_reg_sink = &state->memory[state->sp-2];
 
@@ -1255,7 +1255,7 @@ int PushOpCode(State8080 *state, uint8_t high_reg, uint8_t low_reg) {
 // Flags: None
 // Op Size: 1
 // Cycles: 11
-int PushPswOpCode(State8080 *state) {
+int PushPswOpCode(Cpu8080 *state) {
     uint8_t flags_byte =
         (state->cc.s  << 7) |
         (state->cc.z  << 6) |
@@ -1276,7 +1276,7 @@ int PushPswOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 10
-int PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
+int PopOpCode(Cpu8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
     *high_reg = state->memory[state->sp + 1];
     *low_reg = state->memory[state->sp];
 
@@ -1288,7 +1288,7 @@ int PopOpCode(State8080 *state, uint8_t *high_reg, uint8_t *low_reg) {
 // Flags: None
 // Op Size: 1
 // Cycles: 10
-int PopPswOpCode(State8080 *state) {
+int PopPswOpCode(Cpu8080 *state) {
     uint8_t flag_byte = state->memory[state->sp];
 
     state->cc.cy = (flag_byte & 0x01) != 0;  // SP0 -> CY, 0th-bit bitmask = 0x01
@@ -1306,7 +1306,7 @@ int PopPswOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 18
-int XthlOpCode(State8080 *state) {
+int XthlOpCode(Cpu8080 *state) {
     uint8_t temp_l_reg = state->l;
     uint8_t temp_h_reg = state->h;
 
@@ -1324,7 +1324,7 @@ int XthlOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 5
-int SphlOpCode(State8080 *state) {
+int SphlOpCode(Cpu8080 *state) {
     uint16_t hl_adr = GetMemoryAdr(state->h, state->l);
     state->sp = hl_adr;
 
@@ -1335,7 +1335,7 @@ int SphlOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 2
 // Cycles: 10
-int InOpCode(State8080 *state, uint8_t byte_2) {
+int InOpCode(Cpu8080 *state, uint8_t byte_2) {
     if (state->io_bus == NULL) {
         return -1;
     }
@@ -1349,7 +1349,7 @@ int InOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: None
 // Op Size: 2
 // Cycles: 10
-int OutOpCode(State8080 *state, uint8_t byte_2) {
+int OutOpCode(Cpu8080 *state, uint8_t byte_2) {
     if (state->io_bus == NULL) {
         return -1;
     }
@@ -1363,7 +1363,7 @@ int OutOpCode(State8080 *state, uint8_t byte_2) {
 // Flags: None
 // Op Size: 1
 // Cycles: 4
-int EiOpCode(State8080 *state) {
+int EiOpCode(Cpu8080 *state) {
     state->int_enable = 1;
     return 4;
 }
@@ -1372,7 +1372,7 @@ int EiOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 4
-int DiOpCode(State8080 *state) {
+int DiOpCode(Cpu8080 *state) {
     state->int_enable = 0;
     return 4;
 }
@@ -1381,7 +1381,7 @@ int DiOpCode(State8080 *state) {
 // Flags: None
 // Op Size: 1
 // Cycles: 7
-int HltOpCode() {
+int HltOpCode(void) {
     // TODO: Figure out HLT mechanic
     return 7;
 }
@@ -1390,11 +1390,11 @@ int HltOpCode() {
 // Flags: None
 // Op Size: 1
 // Cycles: 4
-int NopOpCode() {
+int NopOpCode(void) {
     return 4;
 }
 
-int Emulate8080Op(State8080* state) {
+int Emulate8080Op(Cpu8080* state) {
     int cycles = 0;
     unsigned char *opcode = &state->memory[state->pc];
 
@@ -2096,7 +2096,7 @@ int Emulate8080Op(State8080* state) {
             cycles = RstOpCode(state, 0x20);
             break;
         case 0xE8: // RPE
-            RpeOpCode(state);
+            cycles = RpeOpCode(state);
             break;
         case 0xE9: // PCHL
             cycles = PchlOpCode(state);
@@ -2144,7 +2144,7 @@ int Emulate8080Op(State8080* state) {
             cycles = RstOpCode(state, 0x30);
             break;
         case 0xF8: // RM
-            RmOpCode(state);
+            cycles = RmOpCode(state);
             break;
         case 0xF9: // SPHL
             cycles = SphlOpCode(state);
@@ -2177,10 +2177,10 @@ int Emulate8080Op(State8080* state) {
     return cycles;
 }
 
-State8080 *CreateTestState(uint16_t pc_init) {
+Cpu8080 *CreateTestState(uint16_t pc_init) {
     const uint8_t NULL_8_BIT = 0x00;
 
-    State8080 *state = malloc(sizeof(State8080));
+    Cpu8080 *state = malloc(sizeof(Cpu8080));
     if (state == NULL) {
         return NULL;
     }
@@ -2221,7 +2221,7 @@ State8080 *CreateTestState(uint16_t pc_init) {
     return state;
 }
 
-void LoadRomIntoState(State8080 *state, unsigned char *buffer, long buffer_len) {
+void LoadRomIntoState(Cpu8080 *state, unsigned char *buffer, long buffer_len) {
     int b = 0;
     for (int i = state->pc; i < (state->pc + buffer_len); i++) {
         state->memory[i] = buffer[b];
@@ -2231,7 +2231,7 @@ void LoadRomIntoState(State8080 *state, unsigned char *buffer, long buffer_len) 
     return;
 }
 
-void FreeState(State8080 *state) {
+void FreeState(Cpu8080 *state) {
     if (state != NULL) {
         free(state->memory);
         free(state);
