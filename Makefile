@@ -21,7 +21,7 @@ VIDEO_TEST_BIN			= test_video
 IOBUS_TEST_BIN			= test_iobus
 
 CORE_SRCS 				= disassembler.c cpu.c iobus.c helper_funcs.c
-EMULATE_SRCS			= emulate.c display.c video.c $(CORE_SRCS)
+EMULATE_SRCS			= space_invaders_machine.c space_invaders_interrupt_scheduler.c emulate.c display.c video.c $(CORE_SRCS)
 CPU_TEST_SRCS 			= test/test_cpu.c $(CORE_SRCS)
 CPU_TIMING_TEST_SRCS	= test/test_cpu_timing.c $(CORE_SRCS)
 CPU_IOBUS_TEST_SRCS		= test/test_cpu_iobus.c $(CORE_SRCS)
