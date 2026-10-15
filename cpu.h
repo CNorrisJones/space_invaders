@@ -143,7 +143,7 @@ int HltOpCode(void);
 int NopOpCode(void);
 
 int Emulate8080Op(Cpu8080* cpu);
-Cpu8080 *CreateTestCpu(uint16_t pc_init);
+Cpu8080 *CreateCpu(uint16_t pc_init);
 void LoadRomIntoCpu(Cpu8080 *cpu, unsigned char *buffer, long buffer_len);
 void FreeCpu(Cpu8080 *cpu);
 

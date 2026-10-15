@@ -12,7 +12,7 @@ int main(__attribute__((unused)) int argc, char* argv[]) {
 
     TestDisassembler(file_size, buffer);
 
-    Cpu8080 *demo_cpu = CreateTestCpu(MEM_START);
+    Cpu8080 *demo_cpu = CreateCpu(MEM_START);
     LoadRomIntoCpu(demo_cpu, buffer, file_size);
     int emu_return_code;
 
@@ -36,7 +36,7 @@ int main(__attribute__((unused)) int argc, char* argv[]) {
         printf("\tCounter is: %d\n", counter); 
     }
 
-    FreCpu(demo_cpu);
+    FreeCpu(demo_cpu);
     free(buffer);
     return 0;
 }

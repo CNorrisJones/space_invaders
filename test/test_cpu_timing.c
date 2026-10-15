@@ -21,7 +21,7 @@ static void WriteTest(void *context, uint8_t port, uint8_t value) {
 }
 
 int main(void) {
-    Cpu8080 *demo_cpu = CreateTestCpu(0x00);
+    Cpu8080 *demo_cpu = CreateCpu(0x00);
     if (demo_cpu == NULL) {
         printf("Demo CPU Creation Failure\n");
         return 1;

@@ -12,7 +12,7 @@ int main() {
     unsigned char *buffer = GetFileContents(DIAGNOSTIC_FILE, &file_size);
     const uint16_t MEM_START = 0x100;
 
-    Cpu8080 *demo_cpu = CreateTestCpu(MEM_START);
+    Cpu8080 *demo_cpu = CreateCpu(MEM_START);
     LoadRomIntoCpu(demo_cpu, buffer, file_size);
 
     while(1) {

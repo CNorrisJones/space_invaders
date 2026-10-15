@@ -2177,7 +2177,7 @@ int Emulate8080Op(Cpu8080* cpu) {
     return cycles;
 }
 
-Cpu8080 *CreateTestCpu(uint16_t pc_init) {
+Cpu8080 *CreateCpu(uint16_t pc_init) {
     const uint8_t NULL_8_BIT = 0x00;
 
     Cpu8080 *cpu = malloc(sizeof(Cpu8080));

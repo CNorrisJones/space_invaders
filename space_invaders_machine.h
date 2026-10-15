@@ -10,6 +10,13 @@
 #include "input_state.h"
 #include "space_invaders_interrupt_scheduler.h"
 
+typedef enum SpaceInvadersStartingLives {
+    SPACE_INVADERS_LIVES_3 = 3,
+    SPACE_INVADERS_LIVES_4 = 4,
+    SPACE_INVADERS_LIVES_5 = 5,
+    SPACE_INVADERS_LIVES_6 = 6
+} SpaceInvadersStartingLives;
+
 typedef struct SpaceInvadersSoundLatches {
     bool ufo_effect;
     bool shot_effect;
@@ -25,10 +32,10 @@ typedef struct SpaceInvadersSoundLatches {
 } SpaceInvadersSoundLatches;
 
 typedef struct SpaceInvadersDipSettings {
-    bool        power_test;
-    bool        coin_info;
-    uint8_t     starting_num_lives;
-    bool        bonus_life_value;
+    bool                            power_test;
+    bool                            coin_info;
+    SpaceInvadersStartingLives      starting_num_lives;
+    bool                            bonus_life_value;
     
 } SpaceInvadersDipSettings;
 
@@ -49,14 +56,7 @@ typedef struct SpaceInvadersMachine {
     SpaceInvadersInterruptScheduler     interrupt_scheduler;
 } SpaceInvadersMachine;
 
-SpaceInvadersMachine *InitSpaceInvadersMachine(
-    IoBus *io_bus,
-    Cpu8080 *cpu,
-    DisplayContext *display,
-    uint32_t *frame_buffer,
-    uint8_t starting_lives,
-    bool bonus_life_value
-);
-
+SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starting_lives, bool bonus_life_value);
+void SpaceInvadersMachineShutdown(SpaceInvadersMachine *machine);
 
 #endif
