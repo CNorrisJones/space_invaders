@@ -10,25 +10,35 @@
 #include "space_invaders_interrupt_scheduler.h"
 #include "space_invaders_machine.h"
 
-static uint8_t DetermineOffsetShiftRegister(uint16_t shift_register, uint8_t offset) {
+static uint8_t DetermineShiftRegisterRead(uint16_t shift_register, uint8_t offset) {
     uint8_t offset_amount = 0x08 - (offset & 0x07);
     uint16_t offset_val = shift_register >> offset_amount;
     uint8_t return_val = (offset_val & 0xFF);
-    return 0x00;
+    return return_val;
+}
+
+static uint16_t DetermineShiftRegisterWrite(uint16_t shift_register, uint8_t value) {
+    uint16_t low_byte = shift_register >> 8;
+    uint16_t high_byte = value << 8;
+    uint16_t new_register = high_byte | low_byte;
+    
+    return new_register;
 }
 
 static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
     SpaceInvadersIoState *io_state = context;
     uint8_t read_byte;
+    bool bit_0_val;
+    bool bit_1_val;
 
     // Arch Breakdown available here: https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
     switch(port) {
         case 0x00: // PORT 0 READ
             read_byte =
-                (0x01 << 7)                                     | // ? tied to demux port 7 (just always 1 it) ?
-                (io_state->input_state.p1_fire << 6)            | // Right
+                (0x01 << 7)                                     | // ? tied to demux port 7 (just always 1 it as it does not look to matter) ?
+                (io_state->input_state.p1_right << 6)            | // Right
                 (io_state->input_state.p1_left << 5)            | // Left
-                (io_state->input_state.p1_right << 4)           | // Fire
+                (io_state->input_state.p1_fire << 4)           | // Fire
                 (0x01 << 3)                                     | // Always 1
                 (0x01 << 2)                                     | // Always 1
                 (0x01 << 1)                                     | // Always 1
@@ -36,7 +46,7 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
             return read_byte;
         case 0x01: // PORT 1 READ
             read_byte =
-                (0x01 << 7)                             | // Not connected (Always 1)
+                (0x01 << 7)                             | // Not connected (Lets Just Default to Always 1)
                 (io_state->input_state.p1_right << 6)   | // 1P right (1 if pressed)
                 (io_state->input_state.p1_left << 5)    | // 1P left (1 if pressed)
                 (io_state->input_state.p1_fire << 4)    | // 1P shot (1 if pressed)
@@ -46,21 +56,26 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
                 (io_state->input_state.credit << 0);    // CREDIT (1 if deposit)
             return read_byte;
         case 0x02: // PORT 2 READ
-            bool bit_0_val;
-            bool bit_1_val;
             switch(io_state->dip_configuration.starting_num_lives) {
                 case 3:
                     bit_0_val = 0;
                     bit_1_val = 0;
+                    break;
                 case 4:
                     bit_0_val = 1;
                     bit_1_val = 0;
+                    break;
                 case 5:
                     bit_0_val = 0;
                     bit_1_val = 1;
+                    break;
                 case 6:
                     bit_0_val = 1;
                     bit_1_val = 1;
+                    break;
+                default:
+                    bit_0_val = 0;
+                    bit_1_val = 0;
             }
 
             read_byte =
@@ -74,7 +89,7 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
                 (bit_0_val << 0);                                   //  DIP3 00 = 3 ships  10 = 5 ships
             return read_byte;
         case 0x03: // PORT 3 READ SHIFT REGISTER DATA
-            read_byte = DetermineOffsetShiftRegister(io_state->shift_register, io_state->shift_amount);
+            read_byte = DetermineShiftRegisterRead(io_state->shift_register, io_state->shift_amount);
             return read_byte;
         default: // INVALID
             return 0x00;
@@ -84,23 +99,34 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
 static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
     SpaceInvadersIoState *io_state = context;
 
+    // Arch Breakdown available here: https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
     switch(port) {
-        case 0x02: // PORT 2
-            return port;
+        case 0x02: // PORT 2 bit 0,1,2 Shift amount
+            io_state->shift_amount = (value & 0x07);
+            return;
         case 0x03: // PORT 3
-            return port;
+            io_state->sound_latches.ufo_effect = (value & 0x01);
+            io_state->sound_latches.shot_effect = ((value >> 1) & 0x01);
+            io_state->sound_latches.player_die_effect = ((value >> 2) & 0x01);
+            io_state->sound_latches.invader_die_effect = ((value >> 3) & 0x01);
+            io_state->sound_latches.extended_play_effect = ((value >> 4) & 0x01);
+            io_state->sound_latches.amplifier_enable_effect = ((value >> 5) & 0x01);
+            return;
         case 0x04: // PORT 4
-            return port;
+            io_state->shift_register = DetermineShiftRegisterWrite(io_state->shift_register, value);
+            return;
         case 0x05: // PORT 5
-            return port;
-        case 0x06: // PORT 6
-            return port;
+            io_state->sound_latches.fleet_move_1_effect = (value & 0x01);
+            io_state->sound_latches.fleet_move_2_effect = ((value >> 1) & 0x01);
+            io_state->sound_latches.fleet_move_3_effect = ((value >> 2) & 0x01);
+            io_state->sound_latches.fleet_move_4_effect = ((value >> 3) & 0x01);
+            io_state->sound_latches.ufo_hit_effect = ((value >> 4) & 0x01);
+            return;
+        case 0x06: // PORT 6 Watchdog ... read or write to reset
+            // No idea what this is talking about, for now just return
+            return;
         default:
-            return NULL;
-    }
-    
-    if (port == 0x02) {
-        io_state->shift_amount = value;
+            return;
     }
 }
 

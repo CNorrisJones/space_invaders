@@ -4,7 +4,7 @@
 #include "cpu.h"
 #include "helper_funcs.h"
 
-int main() {
+int main(void) {
     char DIAGNOSTIC_FILE[] = "./rom/cpudiag.bin";
     is_test_cpu = 1;
 
