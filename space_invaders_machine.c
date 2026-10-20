@@ -10,18 +10,95 @@
 #include "space_invaders_interrupt_scheduler.h"
 #include "space_invaders_machine.h"
 
-static uint8_t ToReplaceRead(void *context, uint8_t port) {
-    SpaceInvadersIoState *io_state = context;
+static uint8_t DetermineOffsetShiftRegister(uint16_t shift_register, uint8_t offset) {
+    uint8_t offset_amount = 0x08 - (offset & 0x07);
+    uint16_t offset_val = shift_register >> offset_amount;
+    uint8_t return_val = (offset_val & 0xFF);
+    return 0x00;
+}
 
-    if (port == 0x01) {
-        return io_state->shift_amount;
-    } else {
-        return 0xFF;
+static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
+    SpaceInvadersIoState *io_state = context;
+    uint8_t read_byte;
+
+    // Arch Breakdown available here: https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
+    switch(port) {
+        case 0x00: // PORT 0 READ
+            read_byte =
+                (0x01 << 7)                                     | // ? tied to demux port 7 (just always 1 it) ?
+                (io_state->input_state.p1_fire << 6)            | // Right
+                (io_state->input_state.p1_left << 5)            | // Left
+                (io_state->input_state.p1_right << 4)           | // Fire
+                (0x01 << 3)                                     | // Always 1
+                (0x01 << 2)                                     | // Always 1
+                (0x01 << 1)                                     | // Always 1
+                (io_state->dip_configuration.power_test << 0);  // DIP4 (Seems to be self-test-request read at power up)
+            return read_byte;
+        case 0x01: // PORT 1 READ
+            read_byte =
+                (0x01 << 7)                             | // Not connected (Always 1)
+                (io_state->input_state.p1_right << 6)   | // 1P right (1 if pressed)
+                (io_state->input_state.p1_left << 5)    | // 1P left (1 if pressed)
+                (io_state->input_state.p1_fire << 4)    | // 1P shot (1 if pressed)
+                (0x01 << 3)                             | // Always 1
+                (io_state->input_state.one_player << 2) | // 1P start (1 if pressed)
+                (io_state->input_state.two_player << 1) | // 2P start (1 if pressed)
+                (io_state->input_state.credit << 0);    // CREDIT (1 if deposit)
+            return read_byte;
+        case 0x02: // PORT 2 READ
+            bool bit_0_val;
+            bool bit_1_val;
+            switch(io_state->dip_configuration.starting_num_lives) {
+                case 3:
+                    bit_0_val = 0;
+                    bit_1_val = 0;
+                case 4:
+                    bit_0_val = 1;
+                    bit_1_val = 0;
+                case 5:
+                    bit_0_val = 0;
+                    bit_1_val = 1;
+                case 6:
+                    bit_0_val = 1;
+                    bit_1_val = 1;
+            }
+
+            read_byte =
+                (io_state->dip_configuration.coin_info << 7)        | // DIP7 Coin info displayed in demo screen 0=ON
+                (io_state->input_state.p2_right << 6)               | // P2 right (1 if pressed)
+                (io_state->input_state.p2_left << 5)                | // P2 left (1 if pressed)
+                (io_state->input_state.p2_fire << 4)                | // P2 shot (1 if pressed)
+                (io_state->dip_configuration.bonus_life_value << 3) | // DIP6 0 = extra ship at 1500, 1 = extra ship at 1000
+                (io_state->input_state.tilt << 2)                   | // Tilt
+                (bit_1_val << 1)                                    | // DIP5 01 = 4 ships  11 = 6 ships
+                (bit_0_val << 0);                                   //  DIP3 00 = 3 ships  10 = 5 ships
+            return read_byte;
+        case 0x03: // PORT 3 READ SHIFT REGISTER DATA
+            read_byte = DetermineOffsetShiftRegister(io_state->shift_register, io_state->shift_amount);
+            return read_byte;
+        default: // INVALID
+            return 0x00;
     }
 }
 
-static void ToReplaceWrite(void *context, uint8_t port, uint8_t value) {
+static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
     SpaceInvadersIoState *io_state = context;
+
+    switch(port) {
+        case 0x02: // PORT 2
+            return port;
+        case 0x03: // PORT 3
+            return port;
+        case 0x04: // PORT 4
+            return port;
+        case 0x05: // PORT 5
+            return port;
+        case 0x06: // PORT 6
+            return port;
+        default:
+            return NULL;
+    }
+    
     if (port == 0x02) {
         io_state->shift_amount = value;
     }
@@ -104,7 +181,7 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starti
         return NULL;
     }
 
-    IoBus *io_bus = IoBusInit(&space_invaders_machine->io_state, ToReplaceRead, ToReplaceWrite);
+    IoBus *io_bus = IoBusInit(&space_invaders_machine->io_state, SpaceInvadersRead, SpaceInvadersWrite);
     if (io_bus == NULL) {
         free(frame_buffer);
         DisplayShutdown(display);

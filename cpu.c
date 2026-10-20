@@ -1257,12 +1257,12 @@ int PushOpCode(Cpu8080 *cpu, uint8_t high_reg, uint8_t low_reg) {
 // Cycles: 11
 int PushPswOpCode(Cpu8080 *cpu) {
     uint8_t flags_byte =
-        (cpu->cc.s  << 7) |
-        (cpu->cc.z  << 6) |
+        (cpu->cc.s  << 7)   |
+        (cpu->cc.z  << 6)   |
         (0            << 5) |
-        (cpu->cc.ac << 4) |
+        (cpu->cc.ac << 4)   |
         (0            << 3) |
-        (cpu->cc.p  << 2) |
+        (cpu->cc.p  << 2)   |
         (1            << 1) |
         (cpu->cc.cy << 0);
 
