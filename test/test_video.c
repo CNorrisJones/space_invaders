@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <stdlib.h>
+
 #include "video.h"
 #include "display.h"
+#include "input_state.h"
 
 int main(void) {
     printf("Run!\n");
@@ -35,12 +37,32 @@ int main(void) {
     }
 
     int quit = 0;
+    InputState *input = malloc(sizeof(InputState));
+    if (input == NULL) {
+        printf("Error initializing the InputState\n");
+        DisplayShutdown(test_display);
+        free(video_ram);
+        free(frame_buffer);
+        return VIDEO_CONVERT_FAILURE;
+    }
+
+    input->credit = false;
+    input->one_player = false;
+    input->two_player = false;
+    input->p1_fire = false;
+    input->p1_left = false;
+    input->p1_right = false;
+    input->p2_fire = false;
+    input->p2_left = false;
+    input->p2_right = false;
+    input->tilt = false;
 
     while(!quit) {
-        quit = DisplayPollEvents();
+        quit = DisplayPollEvents(input);
 
         int frame_status = DisplayFrame(test_display, frame_buffer);
         if (frame_status != 0) {
+            free(input);
             DisplayShutdown(test_display);
             free(video_ram);
             free(frame_buffer);
@@ -51,6 +73,7 @@ int main(void) {
         SDL_Delay(16);
     }
 
+    free(input);
     DisplayShutdown(test_display);
     free(video_ram);
     free(frame_buffer);

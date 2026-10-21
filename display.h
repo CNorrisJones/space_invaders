@@ -3,7 +3,9 @@
 
 #include <SDL2/SDL.h>
 #include <stdint.h>
+
 #include "pixel.h"
+#include "input_state.h"
 
 enum DisplayEventStatus {
     DISPLAY_CONTINUE = 0,
@@ -32,7 +34,7 @@ typedef struct DisplayContext {
 
 DisplayContext *DisplayInit(int buffer_width, int buffer_height);
 enum DisplayFrameRenderStatus DisplayFrame(DisplayContext *display_context, const uint32_t *frame_buffer);
-enum DisplayEventStatus DisplayPollEvents(void);
+enum DisplayEventStatus DisplayPollEvents(InputState *input);
 void DisplayShutdown(DisplayContext *display_context);
 
 #endif

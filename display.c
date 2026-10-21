@@ -1,8 +1,11 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
+
 #include "pixel.h"
 #include "display.h"
+#include "input_state.h"
 
 DisplayContext *DisplayInit(int buffer_width, int buffer_height) {
     if (buffer_width <= 0 || buffer_height <= 0) {
@@ -165,12 +168,80 @@ enum DisplayFrameRenderStatus DisplayFrame(DisplayContext *display_context, cons
     return DISPLAY_SUCCESS;
 }
 
-enum DisplayEventStatus DisplayPollEvents(void) {
+enum DisplayEventStatus DisplayPollEvents(InputState *input) {
     SDL_Event event;
     int return_value = DISPLAY_CONTINUE;
 
     while(SDL_PollEvent(&event)) {
         switch (event.type) {
+            case SDL_KEYDOWN:
+                switch (event.key.keysym.sym) {
+                    case SDLK_RETURN:
+                        input->credit = true;
+                        break;
+                    case SDLK_1:
+                        input->one_player = true;
+                        break;
+                    case SDLK_2:
+                        input->two_player = true;
+                        break;
+                    case SDLK_TAB:
+                        input->tilt = true;
+                        break;
+                    case SDLK_a:
+                        input->p1_left = true;
+                        break;
+                    case SDLK_d:
+                        input->p1_right = true;
+                        break;
+                    case SDLK_w:
+                        input->p1_fire = true;
+                        break;
+                    case SDLK_LEFT:
+                        input->p2_left = true;
+                        break;
+                    case SDLK_RIGHT:
+                        input->p2_right = true;
+                        break;
+                    case SDLK_UP:
+                        input->p2_fire = true;
+                        break;
+                }
+                break;
+            case SDL_KEYUP:
+                switch (event.key.keysym.sym) {
+                    case SDLK_RETURN:
+                        input->credit = false;
+                        break;
+                    case SDLK_1:
+                        input->one_player = false;
+                        break;
+                    case SDLK_2:
+                        input->two_player = false;
+                        break;
+                    case SDLK_TAB:
+                        input->tilt = false;
+                        break;
+                    case SDLK_a:
+                        input->p1_left = false;
+                        break;
+                    case SDLK_d:
+                        input->p1_right = false;
+                        break;
+                    case SDLK_w:
+                        input->p1_fire = false;
+                        break;
+                    case SDLK_LEFT:
+                        input->p2_left = false;
+                        break;
+                    case SDLK_RIGHT:
+                        input->p2_right = false;
+                        break;
+                    case SDLK_UP:
+                        input->p2_fire = false;
+                        break;
+                }
+                break;
             case SDL_QUIT:
                 return_value = DISPLAY_QUIT;
                 break;
