@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stddef.h>
+#include <stdbool.h>
 
 #include "cpu.h"
 #include "disassembler.h"
@@ -1364,7 +1365,7 @@ int OutOpCode(Cpu8080 *cpu, uint8_t byte_2) {
 // Op Size: 1
 // Cycles: 4
 int EiOpCode(Cpu8080 *cpu) {
-    cpu->int_enable = 1;
+    cpu->ei_enable_pending = true;
     return 4;
 }
 
@@ -1373,7 +1374,7 @@ int EiOpCode(Cpu8080 *cpu) {
 // Op Size: 1
 // Cycles: 4
 int DiOpCode(Cpu8080 *cpu) {
-    cpu->int_enable = 0;
+    cpu->int_enable = false;
     return 4;
 }
 
@@ -1395,6 +1396,11 @@ int NopOpCode(void) {
 }
 
 int Emulate8080Op(Cpu8080* cpu) {
+    if (cpu->ei_enable_pending) {
+        cpu->ei_enable_pending = false;
+        cpu->int_enable = true;
+    }
+
     int cycles = 0;
     unsigned char *opcode = &cpu->memory[cpu->pc];
 
@@ -2213,12 +2219,36 @@ Cpu8080 *CreateCpu(uint16_t pc_init) {
     cpu->cc.pad = 0; // Clear the alignment padding
 
     // 6. Interrupt System Control
-    cpu->int_enable = 0;
+    cpu->int_enable = false;
+    cpu->ei_enable_pending = false;
 
     // 7. Set up a NULL IoBus Reference (IoBus being the object that liases between CPU and Space Invaders Hardware)
     cpu->io_bus = NULL;
 
     return cpu;
+}
+
+int InjectHardwareInterrupt(Cpu8080 *cpu, uint16_t injected_vector) {
+    if (cpu == NULL) {
+        return 0;
+    }
+
+    if (!cpu->int_enable) {
+        return 0;
+    }
+
+    uint16_t current_pc = cpu->pc;
+    uint8_t pc_high = (uint8_t) ((current_pc >> 8) & 0xFF);
+    uint8_t pc_low = (uint8_t) (current_pc & 0xFF);
+
+    cpu->memory[cpu->sp - 1] = pc_high;
+    cpu->memory[cpu->sp - 2] = pc_low;
+    cpu->sp -= 2;
+
+    cpu->pc = injected_vector;
+    cpu->int_enable = false;
+
+    return 11;
 }
 
 void LoadRomIntoCpu(Cpu8080 *cpu, unsigned char *buffer, long buffer_len) {

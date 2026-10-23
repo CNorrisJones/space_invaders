@@ -2,6 +2,7 @@
 #define CPU_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "iobus.h"
 
@@ -26,7 +27,8 @@ typedef struct Cpu8080 {
     uint16_t    pc;
     uint8_t     *memory;
     struct      ConditionCodes      cc;
-    uint8_t     int_enable;
+    bool        int_enable;
+    bool        ei_enable_pending;
     IoBus       *io_bus;
 } Cpu8080;
 
@@ -144,6 +146,7 @@ int NopOpCode(void);
 
 int Emulate8080Op(Cpu8080* cpu);
 Cpu8080 *CreateCpu(uint16_t pc_init);
+int InjectHardwareInterrupt(Cpu8080 *cpu, uint16_t injected_vector);
 void LoadRomIntoCpu(Cpu8080 *cpu, unsigned char *buffer, long buffer_len);
 void FreeCpu(Cpu8080 *cpu);
 
