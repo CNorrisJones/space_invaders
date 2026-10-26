@@ -7,7 +7,7 @@
 #include "display.h"
 #include "video.h"
 #include "input_state.h"
-#include "space_invaders_interrupt_scheduler.h"
+#include "interrupt_scheduler.h"
 #include "space_invaders_machine.h"
 
 static uint8_t DetermineShiftRegisterRead(uint16_t shift_register, uint8_t offset) {
@@ -205,6 +205,13 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starti
         FreeCpu(cpu);
         free(space_invaders_machine);
         return NULL;
+    }
+
+    // Init frame_buffer to black pixels
+    for (int y = 0; y < VIDEO_OUTPUT_HEIGHT; y++) {
+        for (int x = 0; x < VIDEO_OUTPUT_WIDTH; x++) {
+            frame_buffer[y * VIDEO_OUTPUT_WIDTH + x] = display->pixel_palette.black_pixel;
+        }
     }
 
     IoBus *io_bus = IoBusInit(&space_invaders_machine->io_state, SpaceInvadersRead, SpaceInvadersWrite);

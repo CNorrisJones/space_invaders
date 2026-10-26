@@ -1,42 +1,67 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include "disassembler.h"
-#include "cpu.h"
+#include <stdbool.h>
+
+#include "space_invaders_machine.h"
 #include "helper_funcs.h"
 
-int main(__attribute__((unused)) int argc, char* argv[]) {
-    long file_size = 0;
-    int counter = 0;
-    unsigned char *buffer = GetFileContents(argv[1], &file_size);
-    const uint16_t MEM_START = 0x0;
+static const int CPU_ERR = -1;
+static const int MACHINE_FAILURE = 1;
 
-    TestDisassembler(file_size, buffer);
-
-    Cpu8080 *demo_cpu = CreateCpu(MEM_START);
-    LoadRomIntoCpu(demo_cpu, buffer, file_size);
-    int emu_return_code;
-
-    while(1) {
-        if (counter == 37410) {
-            printf("Debug statement here");
-        }
-
-        Disassemble8080Code(demo_cpu->memory, demo_cpu->pc);
-        emu_return_code = Emulate8080Op(demo_cpu);
-        if (emu_return_code == -1) {
-            printf("CPU STATE FAILURE RETURNED\n");
-            FreeCpu(demo_cpu);
-            free(buffer);
-            return 1;
-        }
-
-        counter += 1;
-        printf("\tCY=%d,P=%d,S=%d,Z=%d,AC=%d\n", demo_cpu->cc.cy, demo_cpu->cc.p, demo_cpu->cc.s, demo_cpu->cc.z, demo_cpu->cc.ac);
-        printf("\tA $%02x B $%02x C $%02x D $%02x E $%02x H $%02x L $%02x SP %04x\n", demo_cpu->a, demo_cpu->b, demo_cpu->c, demo_cpu->d, demo_cpu->e, demo_cpu->h, demo_cpu->l, demo_cpu->sp);
-        printf("\tCounter is: %d\n", counter); 
+int main(void) {
+    SpaceInvadersMachine *machine = InitSpaceInvadersMachine(SPACE_INVADERS_LIVES_3, false);
+    if (machine == NULL) {
+        printf("Error Generating Space Invaders Machine. Closing\n");
+        return MACHINE_FAILURE;
     }
 
-    FreeCpu(demo_cpu);
-    free(buffer);
+    char rom_file[] = "./rom/invaders";
+    long file_size = 0;
+    unsigned char *rom_buffer = GetFileContents(rom_file, &file_size);
+    if (rom_buffer == NULL) {
+        printf("Error Setting Space Invaders Rom into Memory. Closing\n");
+        SpaceInvadersMachineShutdown(machine);
+        return MACHINE_FAILURE;
+    }
+
+    LoadRomIntoCpu(machine->cpu, rom_buffer, file_size);
+    int cpu_op_cycles;
+    int inject_cycles;
+
+    int frame_status = DisplayFrame(machine->display, machine->frame_buffer);
+        if (frame_status != 0) {
+            printf("Error Initializing the Graphics Window\n");
+            free(rom_buffer);
+            SpaceInvadersMachineShutdown(machine);
+            return MACHINE_FAILURE;
+        }
+
+    int quit = 0;
+
+    while(!quit) {
+        quit = DisplayPollEvents(&machine->io_state.input_state);
+        if (quit == DISPLAY_QUIT) {
+            break;
+        }
+
+        cpu_op_cycles = Emulate8080Op(machine->cpu);
+        if (cpu_op_cycles == CPU_ERR) {
+            printf("Error occured during CPU Run\n");
+            free(rom_buffer);
+            SpaceInvadersMachineShutdown(machine);
+            exit(MACHINE_FAILURE);
+        }
+
+        CheckInterruptCycles(&machine->interrupt_scheduler, cpu_op_cycles);
+
+        if (machine->interrupt_scheduler.int_request_pending) {
+            inject_cycles = InjectHardwareInterrupt(machine->cpu, machine->interrupt_scheduler.next_vector);
+            UpdateSchedulerAfterInterrupt(&machine->interrupt_scheduler, inject_cycles);
+        }
+    }
+
+    printf("Shutting Down Machine\n");
+    free(rom_buffer);
+    SpaceInvadersMachineShutdown(machine);
     return 0;
 }

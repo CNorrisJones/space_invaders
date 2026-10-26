@@ -8,7 +8,7 @@
 #include "cpu.h"
 #include "display.h"
 #include "input_state.h"
-#include "space_invaders_interrupt_scheduler.h"
+#include "interrupt_scheduler.h"
 
 typedef enum SpaceInvadersStartingLives {
     SPACE_INVADERS_LIVES_3 = 3,
@@ -44,16 +44,16 @@ typedef struct SpaceInvadersIoState {
     uint16_t                    shift_register;
     uint8_t                     shift_amount;
     SpaceInvadersDipSettings    dip_configuration;
-    SpaceInvadersSoundLatches  sound_latches;
+    SpaceInvadersSoundLatches   sound_latches;
 } SpaceInvadersIoState;
 
 typedef struct SpaceInvadersMachine {
-    IoBus                               *io_bus;
-    Cpu8080                             *cpu;
-    DisplayContext                      *display;
-    uint32_t                            *frame_buffer;
-    SpaceInvadersIoState                io_state;
-    SpaceInvadersInterruptScheduler     interrupt_scheduler;
+    IoBus                   *io_bus;
+    Cpu8080                 *cpu;
+    DisplayContext          *display;
+    uint32_t                *frame_buffer;
+    SpaceInvadersIoState    io_state;
+    InterruptScheduler      interrupt_scheduler;
 } SpaceInvadersMachine;
 
 SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starting_lives, bool bonus_life_value);
