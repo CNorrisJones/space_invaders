@@ -10,53 +10,53 @@
 #include "input_state.h"
 #include "interrupt_scheduler.h"
 
-typedef enum SpaceInvadersStartingLives {
+typedef enum StartingLives {
     SPACE_INVADERS_LIVES_3 = 3,
     SPACE_INVADERS_LIVES_4 = 4,
     SPACE_INVADERS_LIVES_5 = 5,
     SPACE_INVADERS_LIVES_6 = 6
-} SpaceInvadersStartingLives;
+} StartingLives;
 
-typedef struct SpaceInvadersSoundLatches {
-    bool ufo_effect;
-    bool shot_effect;
-    bool player_die_effect;
-    bool invader_die_effect;
-    bool extended_play_effect;
-    bool amplifier_enable_effect;
-    bool fleet_move_1_effect;
-    bool fleet_move_2_effect;
-    bool fleet_move_3_effect;
-    bool fleet_move_4_effect;
-    bool ufo_hit_effect;
-} SpaceInvadersSoundLatches;
+typedef struct SoundLatches {
+    bool    ufo_effect;
+    bool    shot_effect;
+    bool    player_die_effect;
+    bool    invader_die_effect;
+    bool    extended_play_effect;
+    bool    amplifier_enable_effect;
+    bool    fleet_move_1_effect;
+    bool    fleet_move_2_effect;
+    bool    fleet_move_3_effect;
+    bool    fleet_move_4_effect;
+    bool    ufo_hit_effect;
+} SoundLatches;
 
-typedef struct SpaceInvadersDipSettings {
-    bool                            power_test;
-    bool                            coin_info;
-    SpaceInvadersStartingLives      starting_num_lives;
-    bool                            bonus_life_value;
+typedef struct DipSettings {
+    bool            power_test;
+    bool            coin_info;
+    StartingLives   starting_num_lives;
+    bool            bonus_life_value;
     
-} SpaceInvadersDipSettings;
+} DipSettings;
 
-typedef struct SpaceInvadersIoState {
-    InputState                  input_state;
-    uint16_t                    shift_register;
-    uint8_t                     shift_amount;
-    SpaceInvadersDipSettings    dip_configuration;
-    SpaceInvadersSoundLatches   sound_latches;
-} SpaceInvadersIoState;
+typedef struct IoState {
+    InputState      input_state;
+    uint16_t        shift_register;
+    uint8_t         shift_amount;
+    DipSettings     dip_configuration;
+    SoundLatches    sound_latches;
+} IoState;
 
 typedef struct SpaceInvadersMachine {
-    IoBus                   *io_bus;
-    Cpu8080                 *cpu;
-    DisplayContext          *display;
-    uint32_t                *frame_buffer;
-    SpaceInvadersIoState    io_state;
-    InterruptScheduler      interrupt_scheduler;
+    IoBus               *io_bus;
+    Cpu8080             *cpu;
+    DisplayContext      *display;
+    uint32_t            *frame_buffer;
+    IoState             io_state;
+    InterruptScheduler  interrupt_scheduler;
 } SpaceInvadersMachine;
 
-SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starting_lives, bool bonus_life_value);
+SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, bool bonus_life_value);
 void SpaceInvadersMachineShutdown(SpaceInvadersMachine *machine);
 
 #endif

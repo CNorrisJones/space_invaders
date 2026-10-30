@@ -6,7 +6,7 @@
 
 int main(void) {
     bool new_life_at_1000 = true;
-    SpaceInvadersStartingLives three_lives = SPACE_INVADERS_LIVES_3;
+    StartingLives three_lives = SPACE_INVADERS_LIVES_3;
     SpaceInvadersMachine *test_machine = InitSpaceInvadersMachine(three_lives, new_life_at_1000);
     if (test_machine == NULL) {
         printf("Shift Register Test Failure: Failed to Generate Machine\n");

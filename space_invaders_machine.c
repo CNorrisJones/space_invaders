@@ -26,7 +26,7 @@ static uint16_t DetermineShiftRegisterWrite(uint16_t shift_register, uint8_t val
 }
 
 static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
-    SpaceInvadersIoState *io_state = context;
+    IoState *io_state = context;
     uint8_t read_byte;
     bool bit_0_val;
     bool bit_1_val;
@@ -97,7 +97,7 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
 }
 
 static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
-    SpaceInvadersIoState *io_state = context;
+    IoState *io_state = context;
 
     // Arch Breakdown available here: https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
     switch(port) {
@@ -130,7 +130,7 @@ static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
     }
 }
 
-SpaceInvadersMachine *InitSpaceInvadersMachine(SpaceInvadersStartingLives starting_lives, bool bonus_life_value) {
+SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, bool bonus_life_value) {
     switch(starting_lives) {
         case SPACE_INVADERS_LIVES_3: break;
         case SPACE_INVADERS_LIVES_4: break;
