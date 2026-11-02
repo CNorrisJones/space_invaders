@@ -3,9 +3,12 @@ CPPFLAGS 					= -I.
 CFLAGS 						= -Wall -Wextra -g
 SDL_CFLAGS  				:= $(shell sdl2-config --cflags)
 SDL_LIBS					:= $(shell sdl2-config --libs)
+MIXER_CFLAGS				:= $(shell pkg-config --cflags SDL2_mixer)
+MIXER_LIBS					:= $(shell pkg-config --libs SDL2_mixer)
 
 RUN_TARGET						= run-emulate
 RUN_DIAGNOSTIC_TARGET 			= run-diagnostic
+AUDIO_TEST_TARGET				= test-audio
 CPU_INTERRUPT_TEST_TARGET		= test-cpu-interrupt
 CPU_IOBUS_TEST_TARGET 			= test-cpu-iobus
 CPU_TIMING_TEST_TARGET			= test-cpu-timing
@@ -19,6 +22,7 @@ VIDEO_TEST_TARGET 				= test-video
 
 EMULATE_BIN						= emulate
 DIAGNOSTIC_BIN					= diagnostic
+AUDIO_TEST_BIN					= test_audio
 CPU_INTERRUPT_TEST_BIN			= test_cpu_interrupt
 CPU_IOBUS_TEST_BIN				= test_cpu_iobus
 CPU_TIMING_TEST_BIN				= test_cpu_timing
@@ -31,8 +35,9 @@ VIDEO_TEST_BIN					= test_video
 
 
 CORE_SRCS 						= disassembler.c cpu.c helper_funcs.c iobus.c
-EMULATE_SRCS					= space_invaders_machine.c interrupt_scheduler.c emulate.c display.c video.c $(CORE_SRCS)
-DIAGNOSTIC_SRCS					= space_invaders_machine.c interrupt_scheduler.c diagnostic.c display.c video.c $(CORE_SRCS)
+EMULATE_SRCS					= audio.c space_invaders_machine.c interrupt_scheduler.c emulate.c display.c video.c $(CORE_SRCS)
+DIAGNOSTIC_SRCS					= diagnostic.c $(CORE_SRCS)
+AUDIO_TEST_SRCS					= test/test_audio.c audio.c
 CPU_INTERRUPT_TEST_SRCS			= test/test_cpu_interrupt.c $(CORE_SRCS)
 CPU_IOBUS_TEST_SRCS				= test/test_cpu_iobus.c $(CORE_SRCS)
 CPU_TIMING_TEST_SRCS			= test/test_cpu_timing.c $(CORE_SRCS)
@@ -45,6 +50,7 @@ VIDEO_TEST_SRCS 				= test/test_video.c video.c display.c
 
 EMULATE_OBJS					= $(EMULATE_SRCS:.c=.o)
 DIAGNOSTIC_OBJS 				= $(DIAGNOSTIC_SRCS:.c=.o)
+AUDIO_TEST_OBJS					= $(AUDIO_TEST_SRCS:.c=.o)
 CPU_INTERRUPT_TEST_OBJS			= $(CPU_INTERRUPT_TEST_SRCS:.c=.o)
 CPU_IOBUS_TEST_OBJS				= $(CPU_IOBUS_TEST_SRCS:.c=.o)
 CPU_TIMING_TEST_OBJS 			= $(CPU_TIMING_TEST_SRCS:.c=.o)
@@ -54,10 +60,12 @@ INTERRUPT_SCHEDULER_TEST_OBJS	= $(INTERRUPT_SCHEDULER_TEST_SRCS:.c=.o)
 IOBUS_TEST_OBJS 				= $(IOBUS_TEST_SRCS:.c=.o)
 SHIFT_REGISTER_TEST_OBJS 		= $(SHIFT_REGISTER_TEST_SRCS:.c=.o)
 VIDEO_TEST_OBJS 				= $(VIDEO_TEST_SRCS:.c=.o)
+MIXER_OBJS						= audio.o test/test_audio.o
 SDL_OBJS						= display.o test/test_display.o test/test_video.o
 ALL_OBJS						:= $(sort \
 	$(EMULATE_OBJS)						\
 	$(DIAGNOSTIC_OBJS) 					\
+	$(AUDIO_TEST_OBJS)					\
 	$(CPU_INTERRUPT_TEST_OBJS)			\
 	$(CPU_IOBUS_TEST_OBJS)				\
 	$(CPU_TIMING_TEST_OBJS)				\
@@ -69,7 +77,7 @@ ALL_OBJS						:= $(sort \
 	$(VIDEO_TEST_OBJS))
 	
 
-.PHONY: all run-emulate run-diagnostic test-cpu-interrupt test-cpu-iobus test-cpu-timing test-cpu test-display test-interrupt-scheduler test-iobus test-shift-register test-video clean valgrind
+.PHONY: all run-emulate run-diagnostic test-audio test-cpu-interrupt test-cpu-iobus test-cpu-timing test-cpu test-display test-interrupt-scheduler test-iobus test-shift-register test-video clean valgrind
 
 all: $(EMULATE_BIN)
 
@@ -78,6 +86,9 @@ $(RUN_TARGET): $(EMULATE_BIN)
 
 $(RUN_DIAGNOSTIC_TARGET): $(DIAGNOSTIC_BIN)
 	./$(DIAGNOSTIC_BIN) ./rom/invaders
+
+$(AUDIO_TEST_TARGET): $(AUDIO_TEST_BIN)
+	./$(AUDIO_TEST_BIN)
 
 $(CPU_INTERRUPT_TEST_TARGET): $(CPU_INTERRUPT_TEST_BIN)
 	./$(CPU_INTERRUPT_TEST_BIN)
@@ -109,16 +120,19 @@ $(VIDEO_TEST_TARGET): $(VIDEO_TEST_BIN)
 
 
 clean:
-	rm -f $(EMULATE_BIN) $(DIAGNOSTIC_BIN) $(CPU_INTERRUPT_TEST_BIN) $(CPU_IOBUS_TEST_BIN) $(CPU_TIMING_TEST_BIN) $(CPU_TEST_BIN) $(DISPLAY_TEST_BIN) $(INTERRUPT_SCHEDULER_TEST_BIN) $(IOBUS_TEST_BIN) $(SHIFT_REGISTER_TEST_BIN) $(VIDEO_TEST_BIN) $(ALL_OBJS)
+	rm -f $(EMULATE_BIN) $(DIAGNOSTIC_BIN) $(AUDIO_TEST_BIN) $(CPU_INTERRUPT_TEST_BIN) $(CPU_IOBUS_TEST_BIN) $(CPU_TIMING_TEST_BIN) $(CPU_TEST_BIN) $(DISPLAY_TEST_BIN) $(INTERRUPT_SCHEDULER_TEST_BIN) $(IOBUS_TEST_BIN) $(SHIFT_REGISTER_TEST_BIN) $(VIDEO_TEST_BIN) $(ALL_OBJS)
 
 valgrind: $(EMULATE_BIN)
 	valgrind -s --leak-check=full --show-leak-kinds=all --track-origins=yes ./$(EMULATE_BIN)
 
 $(EMULATE_BIN): $(EMULATE_OBJS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(SDL_LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(SDL_LIBS) $(MIXER_LIBS)
 
 $(DIAGNOSTIC_BIN): $(DIAGNOSTIC_OBJS)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(SDL_LIBS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
+
+$(AUDIO_TEST_BIN): $(AUDIO_TEST_OBJS)
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(MIXER_LIBS)
 
 $(CPU_INTERRUPT_TEST_BIN): $(CPU_INTERRUPT_TEST_OBJS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
@@ -146,6 +160,8 @@ $(SHIFT_REGISTER_TEST_BIN): $(SHIFT_REGISTER_TEST_OBJS)
 
 $(VIDEO_TEST_BIN): $(VIDEO_TEST_OBJS)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ $(SDL_LIBS)
+
+$(MIXER_OBJS): CPPFLAGS += $(MIXER_CFLAGS)
 
 $(SDL_OBJS): CPPFLAGS += $(SDL_CFLAGS)
 
