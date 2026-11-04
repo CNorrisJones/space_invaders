@@ -1,6 +1,8 @@
 #ifndef AUDIO_H
 #define AUDIO_H
 
+#include <stdbool.h>
+
 enum AudioStatus {
     AUDIO_FAILURE = -1,
     AUDIO_SUCCESS = 0
@@ -22,6 +24,7 @@ typedef struct AudioContext
 AudioContext;
 
 AudioContext *AudioInit(void);
+int AudioSetUfoMovement(AudioContext *audio_context, bool activate);
 int PlayAudio(AudioContext *audio_context, int audio_flag);
 void AudioShutdown(AudioContext *audio_context);
 

@@ -8,29 +8,22 @@
 static const int FREQUENCY = 44100;
 static const int CHANNELS = 2;
 static const int AUDIO_BUFFER_SIZE = 2048;
+static const int DISABLED_UFO_MOVE_CHANNEL = -1;
+static const bool ACTIVATE_UFO_MOVE = true;
 
 struct AudioContext {
-    Mix_Chunk *invader_killed;
-    Mix_Chunk *invader_move_1;
-    Mix_Chunk *invader_move_2;
-    Mix_Chunk *invader_move_3;
-    Mix_Chunk *invader_move_4;
-    Mix_Chunk *player_killed;
-    Mix_Chunk *player_shoot;
-    Mix_Chunk *ufo_killed;
-    Mix_Chunk *ufo_move;
+    Mix_Chunk   *invader_killed;
+    Mix_Chunk   *invader_move_1;
+    Mix_Chunk   *invader_move_2;
+    Mix_Chunk   *invader_move_3;
+    Mix_Chunk   *invader_move_4;
+    Mix_Chunk   *player_killed;
+    Mix_Chunk   *player_shoot;
+    Mix_Chunk   *ufo_killed;
+    Mix_Chunk   *ufo_move;
+    bool        mixer_open;
+    int         ufo_move_channel;
 };
-
-static int LoadWavIntoAudioContext(Mix_Chunk *audio_chunk, char filename[]) {
-    audio_chunk = Mix_LoadWAV(filename);
-    if(audio_chunk == NULL) {
-        printf("Failed to load '%s' sound effect! SDL_mixer Error: %s\n", filename, Mix_GetError());
-
-        return AUDIO_FAILURE;
-    }
-    
-    return AUDIO_SUCCESS;
-}
 
 AudioContext *AudioInit(void) {
     AudioContext *audio_context = malloc(sizeof(AudioContext));
@@ -48,6 +41,8 @@ AudioContext *AudioInit(void) {
     audio_context->player_shoot = NULL;
     audio_context->ufo_killed = NULL;
     audio_context->ufo_move = NULL;
+    audio_context->ufo_move_channel = DISABLED_UFO_MOVE_CHANNEL;
+    audio_context->mixer_open = false;
 
     //Initialize SDL_mixer
     int audio_init = Mix_OpenAudio(FREQUENCY, MIX_DEFAULT_FORMAT, CHANNELS, AUDIO_BUFFER_SIZE);
@@ -56,58 +51,58 @@ AudioContext *AudioInit(void) {
         AudioShutdown(audio_context);
         return NULL;
     }
+    audio_context->mixer_open = true;
 
-    int audio_loaded;
-    audio_loaded = LoadWavIntoAudioContext(audio_context->invader_killed, "sound/invader_killed.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->invader_killed = Mix_LoadWAV("sound/invader_killed.wav");
+    if(audio_context->invader_killed == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->invader_move_1, "sound/invader_move_1.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->invader_move_1 = Mix_LoadWAV("sound/invader_move_1.wav");
+    if(audio_context->invader_move_1 == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->invader_move_2, "sound/invader_move_2.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->invader_move_2 = Mix_LoadWAV("sound/invader_move_2.wav");
+    if(audio_context->invader_move_2 == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->invader_move_3, "sound/invader_move_3.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->invader_move_3 = Mix_LoadWAV("sound/invader_move_3.wav");
+    if(audio_context->invader_move_3 == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->invader_move_4, "sound/invader_move_4.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->invader_move_4 = Mix_LoadWAV("sound/invader_move_4.wav");
+    if(audio_context->invader_move_4 == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->player_killed, "sound/player_killed.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->player_killed = Mix_LoadWAV("sound/player_killed.wav");
+    if(audio_context->player_killed == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->player_shoot, "sound/player_shoot.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->player_shoot = Mix_LoadWAV("sound/player_shoot.wav");
+    if(audio_context->player_shoot == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->ufo_killed, "sound/ufo_killed.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->ufo_killed = Mix_LoadWAV("sound/ufo_killed.wav");
+    if(audio_context->ufo_killed == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
 
-    audio_loaded = LoadWavIntoAudioContext(audio_context->ufo_move, "sound/ufo_move.wav");
-    if(audio_loaded == AUDIO_FAILURE) {
+    audio_context->ufo_move = Mix_LoadWAV("sound/ufo_move.wav");
+    if(audio_context->ufo_move == NULL) {
         AudioShutdown(audio_context);
         return NULL;
     }
@@ -115,73 +110,103 @@ AudioContext *AudioInit(void) {
     return audio_context;
 }
 
+int AudioSetUfoMovement(AudioContext *audio_context, bool activate) {
+    if (audio_context == NULL) {
+        return AUDIO_FAILURE;
+    }
+
+    int audio_channel;
+
+    if (activate) {
+        if (audio_context->ufo_move_channel != DISABLED_UFO_MOVE_CHANNEL) {
+            return AUDIO_SUCCESS;
+        }
+
+        audio_context->ufo_move_channel = Mix_PlayChannel(-1, audio_context->ufo_move, -1);
+        if (audio_context->ufo_move_channel == AUDIO_FAILURE) {
+            return AUDIO_FAILURE;
+        }
+    } else {
+        if(audio_context->ufo_move_channel == DISABLED_UFO_MOVE_CHANNEL) {
+            return AUDIO_SUCCESS;
+        }
+
+        audio_channel = Mix_HaltChannel(audio_context->ufo_move_channel);
+        if (audio_channel == AUDIO_FAILURE) {
+            return AUDIO_FAILURE;
+        }
+        audio_context->ufo_move_channel = DISABLED_UFO_MOVE_CHANNEL;
+    }
+    return AUDIO_SUCCESS;
+}
+
 int PlayAudio(AudioContext *audio_context, int audio_flag) {
     if (audio_context == NULL) {
         return AUDIO_FAILURE;
     }
 
-    int audio_play;
+    int audio_channel;
 
     switch(audio_flag) {
         case(INVADER_KILLED):
-            audio_play = Mix_PlayChannel(-1, audio_context->invader_killed, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->invader_killed, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(INVADER_MOVE_1):
-            audio_play = Mix_PlayChannel(-1, audio_context->invader_move_1, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->invader_move_1, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(INVADER_MOVE_2):
-            audio_play = Mix_PlayChannel(-1, audio_context->invader_move_2, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->invader_move_2, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(INVADER_MOVE_3):
-            audio_play = Mix_PlayChannel(-1, audio_context->invader_move_3, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->invader_move_3, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(INVADER_MOVE_4):
-            audio_play = Mix_PlayChannel(-1, audio_context->invader_move_4, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->invader_move_4, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(PLAYER_KILLED):
-            audio_play = Mix_PlayChannel(-1, audio_context->player_killed, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->player_killed, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(PLAYER_SHOOT):
-            audio_play = Mix_PlayChannel(-1, audio_context->player_shoot, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->player_shoot, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(UFO_KILLED):
-            audio_play = Mix_PlayChannel(-1, audio_context->ufo_killed, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = Mix_PlayChannel(-1, audio_context->ufo_killed, 0);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
 
             break;
         case(UFO_MOVE):
-            audio_play = Mix_PlayChannel(-1, audio_context->ufo_move, 0);
-            if (audio_play == AUDIO_FAILURE) {
+            audio_channel = AudioSetUfoMovement(audio_context, ACTIVATE_UFO_MOVE);
+            if (audio_channel == AUDIO_FAILURE) {
                 return AUDIO_FAILURE;
             }
             
@@ -198,43 +223,48 @@ void AudioShutdown(AudioContext *audio_context) {
         return;
     }
 
-    if (audio_context->invader_killed != NULL) {
-        Mix_FreeChunk(audio_context->invader_killed);
-    }
 
-    if (audio_context->invader_move_1 != NULL) {
-        Mix_FreeChunk(audio_context->invader_move_1);
-    }
+    if (audio_context->mixer_open) {
+        Mix_HaltChannel(-1);
 
-    if (audio_context->invader_move_2 != NULL) {
-        Mix_FreeChunk(audio_context->invader_move_2);
-    }
+        if (audio_context->invader_killed != NULL) {
+            Mix_FreeChunk(audio_context->invader_killed);
+        }
 
-    if (audio_context->invader_move_3 != NULL) {
-        Mix_FreeChunk(audio_context->invader_move_3);
-    }
+        if (audio_context->invader_move_1 != NULL) {
+            Mix_FreeChunk(audio_context->invader_move_1);
+        }
 
-    if (audio_context->invader_move_4 != NULL) {
-        Mix_FreeChunk(audio_context->invader_move_4);
-    }
+        if (audio_context->invader_move_2 != NULL) {
+            Mix_FreeChunk(audio_context->invader_move_2);
+        }
 
-    if (audio_context->player_killed != NULL) {
-        Mix_FreeChunk(audio_context->player_killed);
-    }
+        if (audio_context->invader_move_3 != NULL) {
+            Mix_FreeChunk(audio_context->invader_move_3);
+        }
 
-    if (audio_context->player_shoot != NULL) {
-        Mix_FreeChunk(audio_context->player_shoot);
-    }
+        if (audio_context->invader_move_4 != NULL) {
+            Mix_FreeChunk(audio_context->invader_move_4);
+        }
 
-    if (audio_context->ufo_killed != NULL) {
-        Mix_FreeChunk(audio_context->ufo_killed);
-    }
+        if (audio_context->player_killed != NULL) {
+            Mix_FreeChunk(audio_context->player_killed);
+        }
 
-    if (audio_context->ufo_move != NULL) {
-        Mix_FreeChunk(audio_context->ufo_move);
-    }
+        if (audio_context->player_shoot != NULL) {
+            Mix_FreeChunk(audio_context->player_shoot);
+        }
 
-    Mix_CloseAudio();
+        if (audio_context->ufo_killed != NULL) {
+            Mix_FreeChunk(audio_context->ufo_killed);
+        }
+
+        if (audio_context->ufo_move != NULL) {
+            Mix_FreeChunk(audio_context->ufo_move);
+        }
+
+        Mix_CloseAudio();
+    }
     free(audio_context);
 
     return;
