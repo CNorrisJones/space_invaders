@@ -71,7 +71,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, INVADER_MOVE_1);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 1\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -79,7 +79,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, INVADER_MOVE_2);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 2\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -87,7 +87,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, INVADER_MOVE_3);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 3\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -95,7 +95,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, INVADER_MOVE_4);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 4\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -103,7 +103,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, PLAYER_KILLED);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 5\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -111,7 +111,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, PLAYER_SHOOT);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 6\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -119,7 +119,7 @@ int main(void) {
 
     play_audio = PlayAudio(audio_context, UFO_KILLED);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 7\n");
         AudioShutdown(audio_context);
         return 1;
     }
@@ -127,7 +127,7 @@ int main(void) {
 
      play_audio = PlayAudio(audio_context, UFO_MOVE);
     if (play_audio != AUDIO_SUCCESS) {
-        printf("PlayAudio failed to play effect 0\n");
+        printf("PlayAudio failed to play effect 8\n");
         AudioShutdown(audio_context);
         return 1;
     }
