@@ -26,7 +26,9 @@ static uint16_t DetermineShiftRegisterWrite(uint16_t shift_register, uint8_t val
 }
 
 static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
-    IoState *io_state = context;
+    SpaceInvadersMachine *machine = context;
+    IoState *io_state = &machine->io_state;
+
     uint8_t read_byte;
     bool bit_0_val;
     bool bit_1_val;
@@ -97,7 +99,10 @@ static uint8_t SpaceInvadersRead(void *context, uint8_t port) {
 }
 
 static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
-    IoState *io_state = context;
+    SpaceInvadersMachine *machine = context;
+    IoState *io_state = &machine->io_state;
+    bool was_active;
+    bool is_active;
 
     // Arch Breakdown available here: https://computerarcheology.com/Arcade/SpaceInvaders/Hardware.html
     switch(port) {
@@ -105,10 +110,42 @@ static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
             io_state->shift_amount = (value & 0x07);
             return;
         case 0x03: // PORT 3
-            io_state->sound_latches.ufo_effect = (value & 0x01);
-            io_state->sound_latches.shot_effect = ((value >> 1) & 0x01);
-            io_state->sound_latches.player_die_effect = ((value >> 2) & 0x01);
-            io_state->sound_latches.invader_die_effect = ((value >> 3) & 0x01);
+            was_active = io_state->sound_latches.ufo_effect;
+            is_active = (value & 0x01) != 0;
+            io_state->sound_latches.ufo_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, UFO_MOVE);
+            }
+
+            if (was_active && !is_active) {
+                AudioSetUfoMovement(machine->audio, false);
+            }
+
+            was_active = io_state->sound_latches.shot_effect;
+            is_active = ((value >> 1) & 0x01) != 0;
+            io_state->sound_latches.shot_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, PLAYER_SHOOT);
+            }
+
+            was_active = io_state->sound_latches.player_die_effect;
+            is_active = ((value >> 2) & 0x01) != 0;
+            io_state->sound_latches.player_die_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, PLAYER_KILLED);
+            }
+
+            was_active = io_state->sound_latches.invader_die_effect;
+            is_active = ((value >> 3) & 0x01) != 0;
+            io_state->sound_latches.invader_die_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, INVADER_KILLED);
+            }
+
             io_state->sound_latches.extended_play_effect = ((value >> 4) & 0x01);
             io_state->sound_latches.amplifier_enable_effect = ((value >> 5) & 0x01);
             return;
@@ -116,11 +153,46 @@ static void SpaceInvadersWrite(void *context, uint8_t port, uint8_t value) {
             io_state->shift_register = DetermineShiftRegisterWrite(io_state->shift_register, value);
             return;
         case 0x05: // PORT 5
-            io_state->sound_latches.fleet_move_1_effect = (value & 0x01);
-            io_state->sound_latches.fleet_move_2_effect = ((value >> 1) & 0x01);
-            io_state->sound_latches.fleet_move_3_effect = ((value >> 2) & 0x01);
-            io_state->sound_latches.fleet_move_4_effect = ((value >> 3) & 0x01);
-            io_state->sound_latches.ufo_hit_effect = ((value >> 4) & 0x01);
+            was_active = io_state->sound_latches.fleet_move_1_effect;
+            is_active = (value & 0x01) != 0;
+            io_state->sound_latches.fleet_move_1_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, INVADER_MOVE_1);
+            }
+
+            was_active = io_state->sound_latches.fleet_move_2_effect;
+            is_active = ((value >> 1) & 0x01) != 0;
+            io_state->sound_latches.fleet_move_2_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, INVADER_MOVE_2);
+            }
+
+            was_active = io_state->sound_latches.fleet_move_3_effect;
+            is_active = ((value >> 2) & 0x01) != 0;
+            io_state->sound_latches.fleet_move_3_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, INVADER_MOVE_3);
+            }
+
+            was_active = io_state->sound_latches.fleet_move_4_effect;
+            is_active = ((value >> 3) & 0x01) != 0;
+            io_state->sound_latches.fleet_move_4_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, INVADER_MOVE_4);
+            }
+
+            was_active = io_state->sound_latches.ufo_hit_effect;
+            is_active = ((value >> 4) & 0x01) != 0;
+            io_state->sound_latches.ufo_hit_effect = is_active;
+
+            if (!was_active && is_active) {
+                PlayAudio(machine->audio, UFO_KILLED);
+            }
+
             return;
         case 0x06: // PORT 6 Watchdog ... read or write to reset
             // No idea what this is talking about, for now just return
@@ -224,7 +296,12 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, boo
         }
     }
 
-    IoBus *io_bus = IoBusInit(&space_invaders_machine->io_state, SpaceInvadersRead, SpaceInvadersWrite);
+    space_invaders_machine->cpu = cpu;
+    space_invaders_machine->audio = audio;
+    space_invaders_machine->display = display;
+    space_invaders_machine->frame_buffer = frame_buffer;
+
+    IoBus *io_bus = IoBusInit(space_invaders_machine, SpaceInvadersRead, SpaceInvadersWrite);
     if (io_bus == NULL) {
         free(frame_buffer);
         AudioShutdown(audio);
@@ -233,12 +310,8 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, boo
         free(space_invaders_machine);
         return NULL;
     }
-
-    space_invaders_machine->cpu = cpu;
     space_invaders_machine->cpu->io_bus = io_bus;
     space_invaders_machine->io_bus = io_bus;
-    space_invaders_machine->display = display;
-    space_invaders_machine->frame_buffer = frame_buffer;
 
     return space_invaders_machine;
 }
