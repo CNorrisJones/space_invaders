@@ -147,12 +147,13 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, boo
     space_invaders_machine->cpu = NULL;
     space_invaders_machine->io_bus = NULL;
     space_invaders_machine->display = NULL;
+    space_invaders_machine->audio = NULL;
     space_invaders_machine->frame_buffer = NULL;
 
-    space_invaders_machine->interrupt_scheduler.cycles_elapsed = false;
-    space_invaders_machine->interrupt_scheduler.int_request_pending = false;
+    space_invaders_machine->interrupt_scheduler.cycles_elapsed = 0;
+    space_invaders_machine->interrupt_scheduler.int_request_pending = 0;
     space_invaders_machine->interrupt_scheduler.next_vector = 0x08;
-    space_invaders_machine->interrupt_scheduler.total_cycle_count = false;
+    space_invaders_machine->interrupt_scheduler.total_cycle_count = 0;
 
     space_invaders_machine->io_state.dip_configuration.starting_num_lives = starting_lives;
     space_invaders_machine->io_state.dip_configuration.bonus_life_value = bonus_life_value;
@@ -198,9 +199,18 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, boo
         return NULL;
     }
 
+    AudioContext *audio = AudioInit();
+    if (audio == NULL) {
+        DisplayShutdown(display);
+        FreeCpu(cpu);
+        free(space_invaders_machine);
+        return NULL;
+    }
+
     uint32_t *frame_buffer = malloc(VIDEO_OUTPUT_WIDTH * VIDEO_OUTPUT_HEIGHT * sizeof(uint32_t));
 
     if (frame_buffer == NULL) {
+        AudioShutdown(audio);
         DisplayShutdown(display);
         FreeCpu(cpu);
         free(space_invaders_machine);
@@ -217,6 +227,7 @@ SpaceInvadersMachine *InitSpaceInvadersMachine(StartingLives starting_lives, boo
     IoBus *io_bus = IoBusInit(&space_invaders_machine->io_state, SpaceInvadersRead, SpaceInvadersWrite);
     if (io_bus == NULL) {
         free(frame_buffer);
+        AudioShutdown(audio);
         DisplayShutdown(display);
         FreeCpu(cpu);
         free(space_invaders_machine);
@@ -253,6 +264,12 @@ void SpaceInvadersMachineShutdown(SpaceInvadersMachine *machine) {
         DisplayContext *display_to_delete = machine->display;
         machine->display = NULL;
         DisplayShutdown(display_to_delete);
+    }
+
+    if (machine->audio != NULL) {
+        AudioContext *audio_to_delete = machine->audio;
+        machine->audio = NULL;
+        AudioShutdown(audio_to_delete);
     }
 
     if (machine->frame_buffer != NULL) {

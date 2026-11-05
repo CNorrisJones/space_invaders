@@ -20,6 +20,20 @@ enum AudioFlags {
     UFO_MOVE        = 8,
 };
 
+typedef struct SoundLatches {
+    bool    ufo_effect;
+    bool    shot_effect;
+    bool    player_die_effect;
+    bool    invader_die_effect;
+    bool    extended_play_effect;
+    bool    amplifier_enable_effect;
+    bool    fleet_move_1_effect;
+    bool    fleet_move_2_effect;
+    bool    fleet_move_3_effect;
+    bool    fleet_move_4_effect;
+    bool    ufo_hit_effect;
+} SoundLatches;
+
 typedef struct AudioContext
 AudioContext;
 

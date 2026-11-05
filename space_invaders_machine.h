@@ -9,6 +9,7 @@
 #include "display.h"
 #include "input_state.h"
 #include "interrupt_scheduler.h"
+#include "audio.h"
 
 typedef enum StartingLives {
     SPACE_INVADERS_LIVES_3 = 3,
@@ -16,20 +17,6 @@ typedef enum StartingLives {
     SPACE_INVADERS_LIVES_5 = 5,
     SPACE_INVADERS_LIVES_6 = 6
 } StartingLives;
-
-typedef struct SoundLatches {
-    bool    ufo_effect;
-    bool    shot_effect;
-    bool    player_die_effect;
-    bool    invader_die_effect;
-    bool    extended_play_effect;
-    bool    amplifier_enable_effect;
-    bool    fleet_move_1_effect;
-    bool    fleet_move_2_effect;
-    bool    fleet_move_3_effect;
-    bool    fleet_move_4_effect;
-    bool    ufo_hit_effect;
-} SoundLatches;
 
 typedef struct DipSettings {
     bool            power_test;
@@ -51,6 +38,7 @@ typedef struct SpaceInvadersMachine {
     IoBus               *io_bus;
     Cpu8080             *cpu;
     DisplayContext      *display;
+    AudioContext        *audio;
     uint32_t            *frame_buffer;
     IoState             io_state;
     InterruptScheduler  interrupt_scheduler;
