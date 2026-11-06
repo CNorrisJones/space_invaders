@@ -4,7 +4,7 @@
 #include "cpu.h"
 #include "helper_funcs.h"
 
-int main(void) {
+int test_cpu(void) {
     char DIAGNOSTIC_FILE[] = "./rom/cpudiag.bin";
     is_test_cpu = 1;
 
@@ -21,3 +21,9 @@ int main(void) {
 
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_cpu();
+}
+#endif

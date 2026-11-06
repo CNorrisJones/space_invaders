@@ -4,7 +4,7 @@
 
 #include "space_invaders_machine.h"
 
-int main(void) {
+int test_shift_register_hardware(void) {
     bool new_life_at_1000 = true;
     StartingLives three_lives = SPACE_INVADERS_LIVES_3;
     SpaceInvadersMachine *test_machine = InitSpaceInvadersMachine(three_lives, new_life_at_1000);
@@ -167,3 +167,9 @@ int main(void) {
     SpaceInvadersMachineShutdown(test_machine);
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_shift_register_hardware();
+}
+#endif

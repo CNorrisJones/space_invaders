@@ -333,16 +333,16 @@ void SpaceInvadersMachineShutdown(SpaceInvadersMachine *machine) {
         IoBusShutdown(io_bus_to_delete);
     }
 
-    if (machine->display != NULL) {
-        DisplayContext *display_to_delete = machine->display;
-        machine->display = NULL;
-        DisplayShutdown(display_to_delete);
-    }
-
     if (machine->audio != NULL) {
         AudioContext *audio_to_delete = machine->audio;
         machine->audio = NULL;
         AudioShutdown(audio_to_delete);
+    }
+
+    if (machine->display != NULL) {
+        DisplayContext *display_to_delete = machine->display;
+        machine->display = NULL;
+        DisplayShutdown(display_to_delete);
     }
 
     if (machine->frame_buffer != NULL) {

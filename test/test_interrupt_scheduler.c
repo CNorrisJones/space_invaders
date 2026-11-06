@@ -4,7 +4,7 @@
 
 #include "interrupt_scheduler.h"
 
-int main(void) {
+int test_interrupt_scheduler(void) {
     InterruptScheduler scheduler = {0};
     scheduler.next_vector = MID_VECTOR;
 
@@ -65,3 +65,9 @@ int main(void) {
     printf("Interrupt Scheduler Test Successful\n");
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_interrupt_scheduler();
+}
+#endif

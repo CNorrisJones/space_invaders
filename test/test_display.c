@@ -4,7 +4,7 @@
 #include "display.h"
 #include "input_state.h"
 
-int main(void) {
+int test_display(void) {
     DisplayContext *display = DisplayInit(256, 224);
     if (display == NULL) {
         printf("Error initializing the DisplayContext\n");
@@ -260,3 +260,9 @@ int main(void) {
 
     return DISPLAY_SUCCESS;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_display();
+}
+#endif

@@ -26,7 +26,7 @@ static void WriteTest(void *context, uint8_t port, uint8_t value) {
     }
 }
 
-int main(void) {
+int test_cpu_iobus(void) {
     Cpu8080 *demo_cpu = CreateCpu(0x00);
     if (demo_cpu == NULL) {
         printf("Demo CPU Creation Failure\n");
@@ -173,3 +173,9 @@ int main(void) {
     free(test_hardware);
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_cpu_iobus();
+}
+#endif

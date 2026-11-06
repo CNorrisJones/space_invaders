@@ -20,7 +20,7 @@ static void WriteTest(void *context, uint8_t port, uint8_t value) {
     test_hardware->return_value = value + port;
 }
 
-int main(void) {
+int test_cpu_timing(void) {
     Cpu8080 *demo_cpu = CreateCpu(0x00);
     if (demo_cpu == NULL) {
         printf("Demo CPU Creation Failure\n");
@@ -1440,3 +1440,9 @@ int main(void) {
     IoBusShutdown(test_bus);
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_cpu_timing();
+}
+#endif

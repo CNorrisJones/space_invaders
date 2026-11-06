@@ -3,7 +3,7 @@
 
 #include "cpu.h"
 
-int main(void) {
+int test_cpu_interrupt(void) {
     Cpu8080 *test_cpu = CreateCpu(0x0000);
     if (test_cpu == NULL) {
         printf("CPU Interrupt Test Failure on CPU Init\n");
@@ -87,3 +87,9 @@ int main(void) {
     FreeCpu(test_cpu);
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_cpu_interrupt();
+}
+#endif

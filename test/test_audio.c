@@ -3,7 +3,7 @@
 
 #include "audio.h"
 
-void wait_for_enter(void) {
+static void wait_for_enter(void) {
     printf("Press ENTER to continue...");
     fflush(stdout); // Ensures the prompt displays immediately
 
@@ -12,7 +12,7 @@ void wait_for_enter(void) {
     while ((c = getchar()) != '\n' && c != EOF); 
 }
 
-int main(void) {
+int test_audio(void) {
     AudioContext *audio_context = AudioInit();
     if (audio_context == NULL) {
         printf("AudioContext Initialization Failure\n");
@@ -138,3 +138,9 @@ int main(void) {
     printf("Audio Test Sucessful\n");
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_audio();
+}
+#endif

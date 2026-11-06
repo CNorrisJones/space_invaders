@@ -25,7 +25,7 @@ static void WriteTest(void *context, uint8_t port, uint8_t value) {
     }
 }
 
-int main(void) {
+int test_iobus(void) {
     TestHardware *test_hardware = malloc(sizeof(*test_hardware));
     if (test_hardware == NULL) {
         printf("Failure allocating test_hardware\n");
@@ -118,3 +118,9 @@ int main(void) {
 
     return 0;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_iobus();
+}
+#endif

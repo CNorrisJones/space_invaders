@@ -5,7 +5,7 @@
 #include "display.h"
 #include "input_state.h"
 
-int main(void) {
+int test_video(void) {
     printf("Run!\n");
 
     DisplayContext *test_display = DisplayInit(VIDEO_OUTPUT_WIDTH, VIDEO_OUTPUT_HEIGHT);
@@ -80,3 +80,9 @@ int main(void) {
 
     return vid_response;
 }
+
+#ifndef TEST_HARNESS
+int main(void) {
+    return test_video();
+}
+#endif
